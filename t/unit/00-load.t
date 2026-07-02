@@ -14,8 +14,26 @@ my @modules = qw(
 	Test::CPAN::Health::Reporter::Terminal
 	Test::CPAN::Health::Result
 	Test::CPAN::Health::Runner
+	Test::CPAN::Health::Check::AbandonedDeps
+	Test::CPAN::Health::Check::Benchmarks
+	Test::CPAN::Health::Check::CIConfig
+	Test::CPAN::Health::Check::Complexity
+	Test::CPAN::Health::Check::CPANTesters
+	Test::CPAN::Health::Check::Deprecations
+	Test::CPAN::Health::Check::DocQuality
+	Test::CPAN::Health::Check::DuplicateCode
+	Test::CPAN::Health::Check::Examples
+	Test::CPAN::Health::Check::Kwalitee
+	Test::CPAN::Health::Check::License
+	Test::CPAN::Health::Check::MetaJSON
+	Test::CPAN::Health::Check::MinPerl
+	Test::CPAN::Health::Check::Perlcritic
+	Test::CPAN::Health::Check::PODCoverage
+	Test::CPAN::Health::Check::ReverseDeps
 	Test::CPAN::Health::Check::SecurityAdvisories
 	Test::CPAN::Health::Check::SemVer
+	Test::CPAN::Health::Check::StaleDeps
+	Test::CPAN::Health::Check::TestCoverage
 );
 
 plan tests => scalar @modules;
