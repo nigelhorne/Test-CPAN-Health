@@ -1,9 +1,10 @@
-# Runtime dependencies
+# Generated from Makefile.PL using makefilepl2cpanfile
+
 requires 'perl', '5.014';
 
-requires 'Carp';
 requires 'CPAN::Audit';
 requires 'CPAN::Meta';
+requires 'Carp';
 requires 'DBD::SQLite';
 requires 'DBI';
 requires 'File::Find::Rule';
@@ -25,12 +26,15 @@ requires 'Scalar::Util';
 requires 'Term::ANSIColor';
 requires 'YAML::Tiny';
 
-# Optional -- skipped when --no-cover is passed to cpan-health
-recommends 'Devel::Cover';
-
-# Test dependencies
-on test => sub {
-	requires 'Test::More', '0.96';
+on 'test' => sub {
 	requires 'Test::Exception';
 	requires 'Test::MockObject';
+	requires 'Test::More', '0.96';
+};
+
+on 'develop' => sub {
+	requires 'Devel::Cover';
+	requires 'Perl::Critic';
+	requires 'Test::Pod';
+	requires 'Test::Pod::Coverage';
 };
