@@ -8,6 +8,43 @@ Version 0.01
 
 # SYNOPSIS
 
+**Command-line (the usual entry point):**
+
+    # Analyse the current directory
+    cpan-health .
+
+    # Analyse by CPAN dist name (downloads and unpacks automatically)
+    cpan-health LWP-UserAgent
+
+    # Analyse by module name
+    cpan-health LWP::UserAgent
+
+    # JSON output -- useful for editor or CI integration
+    cpan-health --format=json My-Dist
+
+    # Fail the build if the health score falls below 80
+    cpan-health --min-score=80 --no-cover My-Dist
+
+    # Skip slow or network-dependent checks
+    cpan-health --no-network --no-cover .
+
+    # Run only the security and versioning checks
+    cpan-health --check=security_advisories,sem_ver My-Dist
+
+    # Skip specific checks by id
+    cpan-health --skip=cpan_testers,kwalitee .
+
+    # TAP output -- pipe into any test harness
+    cpan-health --format=tap My-Dist | prove --stdin
+
+    # Write the report to a file
+    cpan-health --format=json --output=report.json LWP-UserAgent
+
+    # Show all available options
+    cpan-health --help
+
+**Perl API (for programmatic use):**
+
     use Test::CPAN::Health;
 
     # Analyse a local unpacked distribution
@@ -149,7 +186,7 @@ None beyond invoking the reporter.
 
 # AUTHOR
 
-Nigel Horne, `<njh at nigelhorbne.com>`
+Nigel Horne, `<njh at nigelhorne.com>`
 
 # LICENSE AND COPYRIGHT
 
