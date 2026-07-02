@@ -4,7 +4,7 @@ use ExtUtils::MakeMaker 7.00;
 
 WriteMakefile(
 	NAME             => 'Test::CPAN::Health',
-	AUTHOR           => q{Nigel Horne <njh@bandsman.co.uk>},
+	AUTHOR           => q{Nigel Horne <njh@nigelhorne.com>},
 	VERSION_FROM     => 'lib/Test/CPAN/Health.pm',
 	ABSTRACT_FROM    => 'lib/Test/CPAN/Health.pm',
 	LICENSE          => 'gpl_2',
@@ -34,10 +34,9 @@ WriteMakefile(
 		'Scalar::Util'          => 0,
 		'Term::ANSIColor'       => 0,
 		'YAML::Tiny'            => 0,
-	},
-	TEST_REQUIRES => {
+	}, TEST_REQUIRES => {
 		'IPC::System::Simple' => 0,
-		'Test::More'            => 0.96,
+		'Test::Most'  => 0.96,
 		'Test::Exception'       => 0,
 		'Test::MockObject'      => 0,
 	},

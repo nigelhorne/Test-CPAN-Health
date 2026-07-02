@@ -1,6 +1,7 @@
 use strict;
 use warnings;
 
+use File::Basename qw(dirname);
 use File::Path qw(make_path);
 use File::Spec;
 use File::Temp qw(tempdir);
@@ -30,7 +31,7 @@ sub make_dist {
 
 sub write_file {
 	my ($path, $content) = @_;
-	make_path((File::Spec->splitpath($path))[1]);
+	make_path(dirname($path));
 	open my $fh, '>', $path or die "Cannot write $path: $!";
 	print {$fh} $content;
 	close $fh;
