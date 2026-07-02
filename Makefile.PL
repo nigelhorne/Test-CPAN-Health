@@ -9,7 +9,7 @@ WriteMakefile(
 	ABSTRACT_FROM    => 'lib/Test/CPAN/Health.pm',
 	LICENSE          => 'gpl_2',
 	MIN_PERL_VERSION => '5.014',
-	EXE_FILES        => ['bin/cpan-health'],
+	EXE_FILES        => ['scripts/cpan-health'],
 	PREREQ_PM        => {
 		'Carp'                  => 0,
 		'CPAN::Audit'           => 0,
