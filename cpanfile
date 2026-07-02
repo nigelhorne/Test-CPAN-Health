@@ -30,7 +30,7 @@ on 'test' => sub {
 	requires 'IPC::System::Simple';
 	requires 'Test::Exception';
 	requires 'Test::MockObject';
-	requires 'Test::Most', '0.96';
+	requires 'Test::Most';
 };
 
 on 'develop' => sub {
