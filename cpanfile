@@ -27,6 +27,7 @@ requires 'Term::ANSIColor';
 requires 'YAML::Tiny';
 
 on 'test' => sub {
+	requires 'IPC::System::Simple';
 	requires 'Test::Exception';
 	requires 'Test::MockObject';
 	requires 'Test::More', '0.96';

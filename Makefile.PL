@@ -36,6 +36,7 @@ WriteMakefile(
 		'YAML::Tiny'            => 0,
 	},
 	TEST_REQUIRES => {
+		'IPC::System::Simple' => 0,
 		'Test::More'            => 0.96,
 		'Test::Exception'       => 0,
 		'Test::MockObject'      => 0,
