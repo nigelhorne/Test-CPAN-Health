@@ -213,7 +213,7 @@ C<TestCoverage> is enabled), and write to the local HTTP cache.
 =cut
 
 sub analyse {
-	my ($self) = @_;
+	my $self = $_[0];
 
 	$self->_init_distribution unless $self->{_distribution};
 	$self->_init_cache         unless $self->{_cache};
@@ -294,7 +294,7 @@ sub min_score    { return $_[0]->{_min_score}    }
 # ---------------------------------------------------------------------------
 
 sub _init_distribution {
-	my ($self) = @_;
+	my $self = $_[0];
 
 	require Test::CPAN::Health::Distribution;
 
@@ -316,7 +316,7 @@ sub _init_distribution {
 }
 
 sub _init_cache {
-	my ($self) = @_;
+	my $self = $_[0];
 
 	require Test::CPAN::Health::Cache;
 
@@ -328,7 +328,7 @@ sub _init_cache {
 }
 
 sub _init_runner {
-	my ($self) = @_;
+	my $self = $_[0];
 
 	require Test::CPAN::Health::Runner;
 
@@ -360,7 +360,7 @@ sub _init_runner {
 }
 
 sub _init_reporter {
-	my ($self) = @_;
+	my $self = $_[0];
 
 	Readonly::Hash my %REPORTER_MAP => (
 		terminal => 'Test::CPAN::Health::Reporter::Terminal',
@@ -382,16 +382,15 @@ sub _init_reporter {
 
 =head1 AUTHOR
 
-Nigel Horne, C<< <njh at bandsman.co.uk> >>
+Nigel Horne, C<< <njh at nigelhorbne.com> >>
 
 =head1 LICENSE AND COPYRIGHT
 
-Copyright (C) 2025 Nigel Horne.
+Copyright (C) 2026 Nigel Horne.
 
-This program is free software; you can redistribute it and/or modify it
-under the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2 of the License, or (at your option)
-any later version.
+Usage is subject to the GPL2 licence terms.
+If you use it,
+please let me know.
 
 =cut
 
