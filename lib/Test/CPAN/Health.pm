@@ -154,10 +154,8 @@ C<PPI> and may produce false positives on generated or data-heavy code.
 =cut
 
 sub new {
-	my $class;
-	my $args;
-
-	$args = validate_strict(
+	my $class = shift;
+	my $args = validate_strict(
 		schema => {
 			distribution => { type => 'object', isa => 'Test::CPAN::Health::Distribution', optional => 1 },
 			path         => { type => 'string',   optional => 1 },
@@ -182,7 +180,7 @@ sub new {
 	croak "Unknown format '$format'; expected one of: " . join(', ', sort keys %VALID_FORMATS)
 		unless $VALID_FORMATS{$format};
 
-	my $self = bless {
+	return bless {
 		_distribution => $args->{distribution},
 		_runner       => undef,
 		_reporter     => undef,
@@ -199,8 +197,6 @@ sub new {
 		_module       => $args->{module},
 		_dist         => $args->{dist},
 	}, $class;
-
-	return $self;
 }
 
 =head2 analyse

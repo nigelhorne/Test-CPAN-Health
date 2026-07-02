@@ -12,9 +12,12 @@ use parent 'Test::CPAN::Health::Check';
 
 our $VERSION = '0.01';
 
+Readonly::Scalar my $SCORE_PASS => 80;
+Readonly::Scalar my $SCORE_WARN => 60;
+
 =head1 NAME
 
-Test::CPAN::Health::Check::Kwalitee - Check CPANTS kwalitee metrics
+Test::CPAN::Health::Check::Kwalitee - Check CPANTS kwalitee indicators
 
 =head1 SYNOPSIS
 
@@ -23,20 +26,95 @@ Test::CPAN::Health::Check::Kwalitee - Check CPANTS kwalitee metrics
     my $check  = Test::CPAN::Health::Check::Kwalitee->new;
     my $result = $check->run($dist);
 
+    printf "%s: %s\n", $result->status, $result->summary;
+
 =head1 DESCRIPTION
 
-Queries the L<Module::CPANTS::Analyse> suite of kwalitee indicators and
-converts the overall kwalitee score into a check score.
+Uses L<Module::CPANTS::Analyse> to evaluate the distribution against the
+standard CPANTS kwalitee indicator set and converts the result into a
+0-100 check score.
 
-I<Not yet implemented.  Returns a skip result.>
+Experimental indicators (C<is_experimental = 1>) are excluded from the
+score because they may change without notice and should not gate a
+distribution's health status.  Core and extra indicators both count.
+
+Score = (passed_non_experimental / total_non_experimental) * 100.
+Status thresholds: pass E<ge> 80, warn E<ge> 60, fail otherwise.
+
+=head1 LIMITATIONS
+
+=over 4
+
+=item * L<Module::CPANTS::Analyse> expects a directory laid out like an
+unpacked CPAN tarball.  Fields like C<manifest_matches_dist> may return
+false for a plain git working directory that lacks a C<MANIFEST> file.
+
+=item * The C<_dangerous> option is required when analysing a local
+directory rather than a downloaded distribution.
+
+=back
 
 =cut
 
-sub id          { 'kwalitee'                                     }
-sub name        { 'CPANTS Kwalitee'                              }
-sub description { 'Checks CPANTS kwalitee indicators for the distribution' }
-sub weight      { 5                                              }
-sub category    { 'quality'                                      }
+sub id          { 'kwalitee'                                                   }
+sub name        { 'CPANTS Kwalitee'                                            }
+sub description { 'Checks CPANTS kwalitee indicators via Module::CPANTS::Analyse' }
+sub weight      { 5                                                             }
+sub category    { 'quality'                                                    }
+
+=head2 run
+
+=head3 PURPOSE
+
+Run the full CPANTS kwalitee analysis against the distribution and return
+a scored result.
+
+=head3 API SPECIFICATION
+
+=head4 INPUT
+
+  dist     Test::CPAN::Health::Distribution  required
+  context  Hashref                           optional
+
+=head4 OUTPUT
+
+L<Test::CPAN::Health::Result> with check_id C<'kwalitee'>.
+
+=head3 MESSAGES
+
+  Code  | Severity | Message                                       | Resolution
+  ------+----------+-----------------------------------------------+-----------
+  KW001 | SKIP     | Module::CPANTS::Analyse is not installed      | cpanm Module::CPANTS::Analyse
+  KW002 | ERROR    | Module::CPANTS::Analyse failed: ...           | See error detail
+  KW003 | ERROR    | No kwalitee indicators found                  | Upgrade Module::CPANTS::Analyse
+  KW004 | PASS     | N of M kwalitee indicators passed (P%)        |
+  KW005 | WARN     | N of M kwalitee indicators passed (P%)        | Fix listed indicators
+  KW006 | FAIL     | N of M kwalitee indicators passed (P%)        | Fix listed indicators
+
+=head3 FORMAL SPECIFICATION
+
+  -- Z schema (placeholder) --
+  KwaliteeOp
+  passed  : N
+  total   : N
+  score   : 0..100
+  -------------------------------------------------------
+  Module::CPANTS::Analyse unavailable  => status = skip
+  total = 0                            => status = error
+  score >= 80                          => status = pass
+  score >= 60                          => status = warn
+  score < 60                           => status = fail
+
+=head3 SIDE EFFECTS
+
+Reads all source files in the distribution.  No network or subprocess I/O.
+
+=head3 USAGE EXAMPLE
+
+    my $result = Test::CPAN::Health::Check::Kwalitee->new->run($dist);
+    printf "Kwalitee: %d/100\n", $result->score;
+
+=cut
 
 sub run {
 	my ($self, $dist, $context) = @_;
@@ -44,7 +122,73 @@ sub run {
 	croak 'dist must be a Test::CPAN::Health::Distribution'
 		unless ref($dist) && $dist->isa('Test::CPAN::Health::Distribution');
 
-	return $self->_skip('Not yet implemented');
+	eval { require Module::CPANTS::Analyse };
+	return $self->_skip('Module::CPANTS::Analyse is not installed') if $@;
+
+	require Module::CPANTS::Kwalitee;
+
+	# Collect all indicators, scoring only the non-experimental ones.
+	my $kw_obj       = Module::CPANTS::Kwalitee->new;
+	my @all_inds     = @{ $kw_obj->get_indicators };
+	my @scored_inds  = grep { !$_->{is_experimental} } @all_inds;
+	my $total        = scalar @scored_inds;
+
+	return $self->_error('No kwalitee indicators found') unless $total;
+
+	my $analyser = Module::CPANTS::Analyse->new({
+		distdir    => $dist->path,
+		dist       => $dist->path,
+		_dangerous => 1,
+	});
+
+	eval {
+		local $SIG{__WARN__} = sub {};    # suppress numerous undef-value warnings
+		$analyser->analyse;
+		$analyser->calc_kwalitee;
+	};
+	return $self->_error("Module::CPANTS::Analyse failed: $@") if $@;
+
+	my $d      = $analyser->d;
+	my $kwhash = $d->{kwalitee} // {};
+
+	my ($passed, @failed_core, @failed_extra);
+	for my $ind (@scored_inds) {
+		my $name = $ind->{name};
+		if ($kwhash->{$name}) {
+			$passed++;
+		} elsif ($ind->{is_extra}) {
+			push @failed_extra, $name;
+		} else {
+			push @failed_core, $name;
+		}
+	}
+
+	my $score  = int($passed / $total * 100);
+	my $status = $score >= $SCORE_PASS ? 'pass'
+	           : $score >= $SCORE_WARN ? 'warn'
+	           :                         'fail';
+
+	my @details = (
+		(map { "Core indicator not met: $_" } sort @failed_core),
+		(map { "Extra indicator not met: $_" } sort @failed_extra),
+	);
+
+	return $self->_result(
+		status  => $status,
+		score   => $score,
+		summary => sprintf(
+			'%d of %d kwalitee indicators passed (%d%%)',
+			$passed, $total, $score,
+		),
+		details => \@details,
+		data    => {
+			name         => $self->name,
+			passed       => $passed,
+			total        => $total,
+			failed_core  => \@failed_core,
+			failed_extra => \@failed_extra,
+		},
+	);
 }
 
 =head1 AUTHOR
