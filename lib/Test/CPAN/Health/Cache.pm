@@ -10,7 +10,7 @@ use File::Path qw(make_path);
 use File::Spec;
 use JSON::MaybeXS qw(encode_json decode_json);
 use Readonly;
-use Params::Validate::Strict qw(:all);
+use Params::Validate::Strict qw(validate_strict);
 
 our $VERSION = '0.01';
 
@@ -72,10 +72,13 @@ disk usage may grow unboundedly if C<purge> is never called.
 sub new {
 	my ($class, %args) = @_;
 
-	validate_with(params => \%args, spec => {
-		cache_dir => { type => SCALAR, default => _default_cache_dir() },
-		ttls      => { type => HASHREF, optional => 1                  },
-	});
+	%args = %{ validate_strict(
+		schema => {
+			cache_dir => { type => 'string',  optional => 1, default => _default_cache_dir() },
+			ttls      => { type => 'hashref', optional => 1 },
+		},
+		input => \%args,
+	) };
 
 	my %ttls = (%DEFAULT_TTLS, %{ $args{ttls} // {} });
 

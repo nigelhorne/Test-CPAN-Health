@@ -7,7 +7,7 @@ use autodie qw(:all);
 use Carp qw(croak carp);
 use List::Util qw(sum0);
 use Readonly;
-use Params::Validate::Strict qw(:all);
+use Params::Validate::Strict qw(validate_strict);
 use Scalar::Util qw(blessed);
 
 our $VERSION = '0.01';
@@ -73,9 +73,12 @@ C<add_result>).
 sub new {
 	my ($class, %args) = @_;
 
-	validate_with(params => \%args, spec => {
-		checks => { type => ARRAYREF, default => [] },
-	});
+	%args = %{ validate_strict(
+		schema => {
+			checks => { type => 'arrayref', optional => 1, default => [] },
+		},
+		input => \%args,
+	) };
 
 	# Build a weight map keyed by check id for O(1) lookup during scoring.
 	my %weight_for;

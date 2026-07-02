@@ -7,7 +7,7 @@ use autodie qw(:all);
 use Carp qw(croak);
 use Readonly;
 use Term::ANSIColor qw(colored);
-use Params::Validate::Strict qw(:all);
+use Params::Validate::Strict qw(validate_strict);
 use Scalar::Util qw(blessed);
 
 our $VERSION = '0.01';
@@ -75,10 +75,13 @@ width is accounted for in test output if needed.
 sub new {
 	my ($class, %args) = @_;
 
-	validate_with(params => \%args, spec => {
-		colour  => { type => SCALAR, optional => 1 },
-		verbose => { type => SCALAR, default  => 0 },
-	});
+	%args = %{ validate_strict(
+		schema => {
+			colour  => { type => 'scalar', optional => 1 },
+			verbose => { type => 'scalar', optional => 1, default => 0 },
+		},
+		input => \%args,
+	) };
 
 	# Honour NO_COLOR convention and isatty; explicit colour => 0 overrides.
 	my $colour = $args{colour}

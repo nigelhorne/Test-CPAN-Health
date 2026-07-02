@@ -24,7 +24,7 @@ WriteMakefile(
 		'JSON::MaybeXS'         => 0,
 		'Module::CPANTS::Analyse' => 0,
 		'Params::Get'           => 0,
-		'Params::Validate'      => 1.29,
+		'Params::Validate::Strict' => 0.35,
 		'Perl::Critic'          => 0,
 		'Perl::Metrics::Simple' => 0,
 		'Perl::MinimumVersion'  => 0,

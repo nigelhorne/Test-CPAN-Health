@@ -8,7 +8,7 @@ use Carp qw(croak carp);
 use File::Find::Rule;
 use File::Spec;
 use Readonly;
-use Params::Validate::Strict qw(:all);
+use Params::Validate::Strict qw(validate_strict);
 
 our $VERSION = '0.01';
 
@@ -61,9 +61,12 @@ the C<meta> accessor returns C<undef> and checks must handle that case.
 sub new {
 	my ($class, %args) = @_;
 
-	validate_with(params => \%args, spec => {
-		path => { type => SCALAR },
-	});
+	%args = %{ validate_strict(
+		schema => {
+			path => { type => 'string', min => 1 },
+		},
+		input => \%args,
+	) };
 
 	croak "Distribution path '$args{path}' does not exist"
 		unless -d $args{path};

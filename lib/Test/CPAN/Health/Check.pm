@@ -6,7 +6,7 @@ use autodie qw(:all);
 
 use Carp qw(croak carp);
 use Readonly;
-use Params::Validate::Strict qw(:all);
+use Params::Validate::Strict qw(validate_strict);
 
 our $VERSION = '0.01';
 
@@ -70,11 +70,14 @@ should honour C<no_network>.
 sub new {
 	my ($class, %args) = @_;
 
-	validate_with(params => \%args, spec => {
-		severity   => { type => SCALAR, default => 3 },
-		no_network => { type => SCALAR, default => 0 },
-		no_cover   => { type => SCALAR, default => 0 },
-	});
+	%args = %{ validate_strict(
+		schema => {
+			severity   => { type => 'integer', min => 1, max => 5, optional => 1, default => 3 },
+			no_network => { type => 'scalar',  optional => 1, default => 0 },
+			no_cover   => { type => 'scalar',  optional => 1, default => 0 },
+		},
+		input => \%args,
+	) };
 
 	my $self = bless {
 		_severity   => $args{severity},

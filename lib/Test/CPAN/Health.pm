@@ -7,8 +7,7 @@ use autodie qw(:all);
 use Carp qw(croak carp);
 use Readonly;
 use Scalar::Util qw(blessed);
-use Params::Validate::Strict qw(:all);
-use Params::Get;
+use Params::Validate::Strict qw(validate_strict);
 
 our $VERSION = '0.01';
 
@@ -119,20 +118,23 @@ C<PPI> and may produce false positives on generated or data-heavy code.
 sub new {
 	my ($class, %args) = @_;
 
-	validate_with(params => \%args, spec => {
-		distribution => { isa  => 'Test::CPAN::Health::Distribution', optional => 1 },
-		path         => { type => SCALAR,   optional => 1 },
-		module       => { type => SCALAR,   optional => 1 },
-		dist         => { type => SCALAR,   optional => 1 },
-		format       => { type => SCALAR,   optional => 1 },
-		checks       => { type => ARRAYREF, optional => 1 },
-		skip         => { type => ARRAYREF, optional => 1 },
-		no_network   => { type => SCALAR,   optional => 1 },
-		no_cover     => { type => SCALAR,   optional => 1 },
-		severity     => { type => SCALAR,   optional => 1 },
-		min_score    => { type => SCALAR,   optional => 1 },
-		cache_dir    => { type => SCALAR,   optional => 1 },
-	});
+	%args = %{ validate_strict(
+		schema => {
+			distribution => { type => 'object', isa => 'Test::CPAN::Health::Distribution', optional => 1 },
+			path         => { type => 'string',   optional => 1 },
+			module       => { type => 'string',   optional => 1 },
+			dist         => { type => 'string',   optional => 1 },
+			format       => { type => 'string',   optional => 1 },
+			checks       => { type => 'arrayref', optional => 1 },
+			skip         => { type => 'arrayref', optional => 1 },
+			no_network   => { type => 'scalar',   optional => 1 },
+			no_cover     => { type => 'scalar',   optional => 1 },
+			severity     => { type => 'integer',  min => 1, max => 5, optional => 1 },
+			min_score    => { type => 'integer',  min => 0, max => 100, optional => 1 },
+			cache_dir    => { type => 'string',   optional => 1 },
+		},
+		input => \%args,
+	) };
 
 	croak 'One of path, module, dist, or distribution is required'
 		unless $args{path} || $args{module} || $args{dist} || $args{distribution};

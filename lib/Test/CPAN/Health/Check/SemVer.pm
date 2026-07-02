@@ -6,7 +6,7 @@ use autodie qw(:all);
 
 use Carp qw(croak carp);
 use Readonly;
-use Params::Validate::Strict qw(:all);
+use Params::Validate::Strict qw(validate_strict);
 
 use parent 'Test::CPAN::Health::Check';
 

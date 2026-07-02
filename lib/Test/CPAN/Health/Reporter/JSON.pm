@@ -6,7 +6,7 @@ use autodie qw(:all);
 
 use Carp qw(croak);
 use JSON::MaybeXS qw(JSON);
-use Params::Validate::Strict qw(:all);
+use Params::Validate::Strict qw(validate_strict);
 use Scalar::Util qw(blessed);
 
 our $VERSION = '0.01';
@@ -35,10 +35,13 @@ The emitted structure mirrors C<< $report->as_hash >>.
 sub new {
 	my ($class, %args) = @_;
 
-	validate_with(params => \%args, spec => {
-		pretty    => { type => SCALAR, default => 0 },
-		canonical => { type => SCALAR, default => 1 },
-	});
+	%args = %{ validate_strict(
+		schema => {
+			pretty    => { type => 'scalar', optional => 1, default => 0 },
+			canonical => { type => 'scalar', optional => 1, default => 1 },
+		},
+		input => \%args,
+	) };
 
 	my $json = JSON()->new->utf8(1)
 		->canonical($args{canonical})

@@ -6,7 +6,7 @@ use autodie qw(:all);
 
 use Carp qw(croak);
 use Readonly;
-use Params::Validate::Strict qw(:all);
+use Params::Validate::Strict qw(validate_strict);
 
 our $VERSION = '0.01';
 
@@ -54,15 +54,18 @@ enforcement is the caller's responsibility.
 sub new {
 	my ($class, %args) = @_;
 
-	validate_with(params => \%args, spec => {
-		check_id => { type => SCALAR                   },
-		status   => { type => SCALAR                   },
-		score    => { type => SCALAR,   optional => 1, allow_undef => 1 },
-		summary  => { type => SCALAR,   optional => 1  },
-		details  => { type => ARRAYREF, optional => 1  },
-		url      => { type => SCALAR,   optional => 1  },
-		data     => { type => HASHREF,  optional => 1  },
-	});
+	%args = %{ validate_strict(
+		schema => {
+			check_id => { type => 'string',  min => 1              },
+			status   => { type => 'string',  min => 1              },
+			score    => { type => 'integer', min => 0, max => 100, optional => 1 },
+			summary  => { type => 'string',  optional => 1         },
+			details  => { type => 'arrayref', optional => 1        },
+			url      => { type => 'string',  optional => 1         },
+			data     => { type => 'hashref', optional => 1         },
+		},
+		input => \%args,
+	) };
 
 	croak "Invalid status '$args{status}'; expected one of: " . join(', ', @VALID_STATUSES)
 		unless $STATUS_SET{ $args{status} };

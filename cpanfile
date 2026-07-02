@@ -14,7 +14,7 @@ requires 'HTTP::Tiny';
 requires 'JSON::MaybeXS';
 requires 'Module::CPANTS::Analyse';
 requires 'Params::Get';
-requires 'Params::Validate', '1.29';   # consumed by the bundled Params::Validate::Strict
+requires 'Params::Validate::Strict', '0.35';
 requires 'Perl::Critic';
 requires 'Perl::Metrics::Simple';
 requires 'Perl::MinimumVersion';

@@ -7,7 +7,7 @@ use autodie qw(:all);
 use Carp qw(croak carp);
 use Readonly;
 use Scalar::Util qw(blessed);
-use Params::Validate::Strict qw(:all);
+use Params::Validate::Strict qw(validate_strict);
 
 our $VERSION = '0.01';
 
@@ -54,10 +54,13 @@ is planned for a future release.
 sub new {
 	my ($class, %args) = @_;
 
-	validate_with(params => \%args, spec => {
-		checks => { type => ARRAYREF, default => []    },
-		cache  => { isa  => 'Test::CPAN::Health::Cache', optional => 1 },
-	});
+	%args = %{ validate_strict(
+		schema => {
+			checks => { type => 'arrayref', optional => 1, default => [] },
+			cache  => { type => 'object', isa => 'Test::CPAN::Health::Cache', optional => 1 },
+		},
+		input => \%args,
+	) };
 
 	my $self = bless {
 		_checks  => $args{checks},
