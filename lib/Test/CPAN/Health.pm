@@ -382,7 +382,7 @@ sub _init_reporter {
 
 =head1 AUTHOR
 
-Nigel Horne, C<< <njh at nigelhorbne.com> >>
+Nigel Horne, C<< <njh at nigelhorne.com> >>
 
 =head1 LICENSE AND COPYRIGHT
 

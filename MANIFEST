@@ -35,6 +35,9 @@ MANIFEST.SKIP
 README.md
 scripts/cpan-health
 t/unit/00-load.t
+t/unit/benchmarks.t
+t/unit/ciconfig.t
+t/unit/examples.t
 t/unit/report.t
 t/unit/result.t
 t/unit/semver.t
