@@ -226,7 +226,7 @@ sub _colour {
 
 	return $text unless $self->{_colour};
 
-	return colored($attr, $text);
+	return colored($text, $attr);
 }
 
 =head1 AUTHOR
