@@ -10,7 +10,9 @@ my @modules = qw(
 	Test::CPAN::Health::Check
 	Test::CPAN::Health::Distribution
 	Test::CPAN::Health::Report
+	Test::CPAN::Health::Reporter::HTML
 	Test::CPAN::Health::Reporter::JSON
+	Test::CPAN::Health::Reporter::TAP
 	Test::CPAN::Health::Reporter::Terminal
 	Test::CPAN::Health::Result
 	Test::CPAN::Health::Runner

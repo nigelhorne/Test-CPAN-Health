@@ -24,7 +24,9 @@ lib/Test/CPAN/Health/Check/StaleDeps.pm
 lib/Test/CPAN/Health/Check/TestCoverage.pm
 lib/Test/CPAN/Health/Distribution.pm
 lib/Test/CPAN/Health/Report.pm
+lib/Test/CPAN/Health/Reporter/HTML.pm
 lib/Test/CPAN/Health/Reporter/JSON.pm
+lib/Test/CPAN/Health/Reporter/TAP.pm
 lib/Test/CPAN/Health/Reporter/Terminal.pm
 lib/Test/CPAN/Health/Result.pm
 lib/Test/CPAN/Health/Runner.pm
@@ -35,9 +37,11 @@ MANIFEST.SKIP
 README.md
 scripts/cpan-health
 t/unit/00-load.t
+t/unit/abandoneddeps.t
 t/unit/benchmarks.t
 t/unit/ciconfig.t
 t/unit/complexity.t
+t/unit/cpantesters.t
 t/unit/deprecations.t
 t/unit/docquality.t
 t/unit/duplicatecode.t
@@ -49,6 +53,10 @@ t/unit/minperl.t
 t/unit/perlcritic.t
 t/unit/podcover.t
 t/unit/report.t
+t/unit/reporter_html.t
+t/unit/reporter_tap.t
 t/unit/result.t
+t/unit/reversedeps.t
 t/unit/semver.t
+t/unit/staledeps.t
 t/unit/testcoverage.t
