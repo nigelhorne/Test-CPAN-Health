@@ -7,6 +7,7 @@ use autodie qw(:all);
 use Carp qw(croak carp);
 use Readonly;
 use Scalar::Util qw(blessed);
+use Params::Get;
 use Params::Validate::Strict qw(validate_strict);
 
 our $VERSION = '0.01';
@@ -153,9 +154,10 @@ C<PPI> and may produce false positives on generated or data-heavy code.
 =cut
 
 sub new {
-	my ($class, %args) = @_;
+	my $class;
+	my $args;
 
-	%args = %{ validate_strict(
+	$args = validate_strict(
 		schema => {
 			distribution => { type => 'object', isa => 'Test::CPAN::Health::Distribution', optional => 1 },
 			path         => { type => 'string',   optional => 1 },
@@ -170,40 +172,38 @@ sub new {
 			min_score    => { type => 'integer',  min => 0, max => 100, optional => 1 },
 			cache_dir    => { type => 'string',   optional => 1 },
 		},
-		input => \%args,
-	) };
+		input => Params::Get::get_params(undef, \@_) || {}
+	);
 
 	croak 'One of path, module, dist, or distribution is required'
-		unless $args{path} || $args{module} || $args{dist} || $args{distribution};
+		unless $args && ($args->{path} || $args->{module} || $args->{dist} || $args->{distribution});
 
-	my $format = lc($args{format} // $DEFAULTS{format});
+	my $format = lc($args->{format} // $DEFAULTS{format});
 	croak "Unknown format '$format'; expected one of: " . join(', ', sort keys %VALID_FORMATS)
 		unless $VALID_FORMATS{$format};
 
 	my $self = bless {
-		_distribution => $args{distribution},
+		_distribution => $args->{distribution},
 		_runner       => undef,
 		_reporter     => undef,
 		_cache        => undef,
 		_format       => $format,
-		_no_network   => $args{no_network} // $DEFAULTS{no_network},
-		_no_cover     => $args{no_cover}   // $DEFAULTS{no_cover},
-		_severity     => $args{severity}   // $DEFAULTS{severity},
-		_min_score    => $args{min_score}  // $DEFAULTS{min_score},
-		_cache_dir    => $args{cache_dir},
-		_checks       => $args{checks}     // [@DEFAULT_CHECKS],
-		_skip         => { map { $_ => 1 } @{ $args{skip} // [] } },
-		_path         => $args{path},
-		_module       => $args{module},
-		_dist         => $args{dist},
+		_no_network   => $args->{no_network} // $DEFAULTS{no_network},
+		_no_cover     => $args->{no_cover}   // $DEFAULTS{no_cover},
+		_severity     => $args->{severity}   // $DEFAULTS{severity},
+		_min_score    => $args->{min_score}  // $DEFAULTS{min_score},
+		_cache_dir    => $args->{cache_dir},
+		_checks       => $args->{checks}     // [@DEFAULT_CHECKS],
+		_skip         => { map { $_ => 1 } @{ $args->{skip} // [] } },
+		_path         => $args->{path},
+		_module       => $args->{module},
+		_dist         => $args->{dist},
 	}, $class;
 
 	return $self;
 }
 
 =head2 analyse
-
-=head3 PURPOSE
 
 Runs all configured checks against the distribution and returns a Report.
 
