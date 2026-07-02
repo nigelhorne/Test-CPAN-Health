@@ -151,7 +151,7 @@ sub run {
 	my $d      = $analyser->d;
 	my $kwhash = $d->{kwalitee} // {};
 
-	my ($passed, @failed_core, @failed_extra);
+	my ($passed, @failed_core, @failed_extra) = (0);
 	for my $ind (@scored_inds) {
 		my $name = $ind->{name};
 		if ($kwhash->{$name}) {

@@ -74,15 +74,24 @@ END
 		my $result = $check->run($dist);
 		isa_ok($result, 'Test::CPAN::Health::Result', 'bare dist returns a Result');
 		is($result->check_id, 'kwalitee', 'result check_id');
-		ok(defined $result->score, 'bare dist: score defined');
-		ok($result->score >= 0 && $result->score <= 100, 'bare dist: score in 0..100');
-		ok(grep { $result->status eq $_ } qw(pass warn fail), 'bare dist: status is pass/warn/fail');
-		ok(@{ $result->details } > 0, 'bare dist: details populated');
-		ok(exists $result->data->{passed},       'data has passed');
-		ok(exists $result->data->{total},        'data has total');
-		ok(exists $result->data->{failed_core},  'data has failed_core');
-		ok(exists $result->data->{failed_extra}, 'data has failed_extra');
-		ok($result->data->{total} > 0, 'total indicators > 0');
+
+		# Module::CPANTS::Analyse may fail on some platforms (e.g. fork-open
+		# on Windows); skip score/data assertions when the check itself errored.
+		SKIP: {
+			skip 'bare dist: Module::CPANTS::Analyse could not run: '
+				. $result->summary, 9
+				unless grep { $result->status eq $_ } qw(pass warn fail);
+
+			ok(defined $result->score,                        'bare dist: score defined');
+			ok($result->score >= 0 && $result->score <= 100, 'bare dist: score in 0..100');
+			ok(grep { $result->status eq $_ } qw(pass warn fail), 'bare dist: status is pass/warn/fail');
+			ok(@{ $result->details } > 0,                    'bare dist: details populated');
+			ok(exists $result->data->{passed},               'data has passed');
+			ok(exists $result->data->{total},                'data has total');
+			ok(exists $result->data->{failed_core},          'data has failed_core');
+			ok(exists $result->data->{failed_extra},         'data has failed_extra');
+			ok($result->data->{total} > 0,                   'total indicators > 0');
+		}
 	}
 
 	# ------------------------------------------------------------------
@@ -170,10 +179,16 @@ MANIFEST
 END
 
 		my $result = $check->run($dist);
-		ok(defined $result->score, 'good dist: score defined');
-		ok($result->score > 0, 'good dist: score > 0');
-		# A well-equipped dist should score higher than a bare one
-		ok($result->data->{passed} > 0, 'good dist: some indicators passed');
+
+		SKIP: {
+			skip 'good dist: Module::CPANTS::Analyse could not run: '
+				. $result->summary, 3
+				unless grep { $result->status eq $_ } qw(pass warn fail);
+
+			ok(defined $result->score,          'good dist: score defined');
+			ok($result->score > 0,              'good dist: score > 0');
+			ok($result->data->{passed} > 0,     'good dist: some indicators passed');
+		}
 	}
 }
 
