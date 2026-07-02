@@ -38,6 +38,9 @@ t/unit/00-load.t
 t/unit/benchmarks.t
 t/unit/ciconfig.t
 t/unit/examples.t
+t/unit/license.t
+t/unit/metajson.t
+t/unit/minperl.t
 t/unit/report.t
 t/unit/result.t
 t/unit/semver.t

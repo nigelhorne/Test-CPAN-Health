@@ -402,7 +402,7 @@ sub author {
 	unless (defined $self->{_author}) {
 		my $meta = $self->meta;
 		if ($meta) {
-			my @authors = @{ $meta->author // [] };
+			my @authors = $meta->author;
 			$self->{_author} = $authors[0];
 		}
 	}
