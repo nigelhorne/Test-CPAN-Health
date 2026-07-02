@@ -93,8 +93,6 @@ sub new {
 
 =head2 get
 
-=head3 PURPOSE
-
 Retrieve a cached value by key.  Returns C<undef> on cache miss or if the
 entry has expired.
 
@@ -287,7 +285,7 @@ Deletes rows from the SQLite database.
 =cut
 
 sub purge {
-	my ($self) = @_;
+	my $self = $_[0];
 
 	my $dbh     = $self->_dbh;
 	my $deleted = 0;
@@ -310,7 +308,7 @@ sub purge {
 
 # Return or create the DBI handle, creating the schema on first connect.
 sub _dbh {
-	my ($self) = @_;
+	my $self = $_[0];
 
 	return $self->{_dbh} if $self->{_dbh};
 
@@ -335,7 +333,7 @@ sub _dbh {
 }
 
 sub _ensure_schema {
-	my ($self) = @_;
+	my $self = $_[0];
 
 	$self->{_dbh}->do(<<'SQL');
 CREATE TABLE IF NOT EXISTS cache (
@@ -360,12 +358,15 @@ sub _ttl_for {
 }
 
 sub _default_cache_dir {
-	my $home = $ENV{HOME} // $ENV{USERPROFILE} // File::Spec->tmpdir;
+	if($ENV{CACHEDIR} || $ENV{CACHE_DIR}) {
+		return $ENV{CACHEDIR} || $ENV{CACHE_DIR};
+	}
+	my $home = $ENV{HOME} // $ENV{USERPROFILE} // File::Spec->tmpdir();
 	return File::Spec->catdir($home, '.cache', 'cpan-health');
 }
 
 sub DESTROY {
-	my ($self) = @_;
+	my $self = $_[0];
 
 	if ($self->{_dbh}) {
 		$self->{_dbh}->disconnect;
@@ -377,11 +378,11 @@ sub DESTROY {
 
 =head1 AUTHOR
 
-Nigel Horne, C<< <njh at bandsman.co.uk> >>
+Nigel Horne, C<< <njh at nigelhorne.com> >>
 
 =head1 LICENSE AND COPYRIGHT
 
-Copyright (C) 2025 Nigel Horne.
+Copyright (C) 2026 Nigel Horne.
 
 This program is free software; you can redistribute it and/or modify it
 under the terms of the GNU General Public License as published by the Free
