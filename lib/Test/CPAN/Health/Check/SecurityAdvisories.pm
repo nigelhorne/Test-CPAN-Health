@@ -261,20 +261,32 @@ sub _scan_advisories {
 		}
 	}
 
-	my $audit = CPAN::Audit->new;
+	# advisories_for() is on CPAN::Audit::Query, not CPAN::Audit itself.
+	# Load the DB via CPANSA::DB (preferred) or the deprecated CPAN::Audit::DB.
+	my $db;
+	if (eval { require CPANSA::DB; 1 }) {
+		$db = CPANSA::DB->db;
+	} elsif (eval { require CPAN::Audit::DB; 1 }) {
+		$db = CPAN::Audit::DB->db;
+	} else {
+		$db = {};
+	}
+
+	require CPAN::Audit::Query;
+	my $query = CPAN::Audit::Query->new(db => $db);
 
 	# Scan direct dependencies
 	for my $mod (keys %direct_modules) {
 		my $ver      = $direct_modules{$mod};
-		my $findings = $audit->advisories_for($mod, $ver);
-		push @direct, map { { module => $mod, version => $ver, %{$_} } } @{$findings // []};
+		my @findings = $query->advisories_for($mod, $ver);
+		push @direct, map { { module => $mod, version => $ver, %{$_} } } @findings;
 	}
 
 	# Scan indirect dependencies
 	for my $mod (keys %indirect_modules) {
 		my $ver      = $indirect_modules{$mod};
-		my $findings = $audit->advisories_for($mod, $ver);
-		push @indirect, map { { module => $mod, version => $ver, %{$_} } } @{$findings // []};
+		my @findings = $query->advisories_for($mod, $ver);
+		push @indirect, map { { module => $mod, version => $ver, %{$_} } } @findings;
 	}
 
 	return (\@direct, \@indirect);
@@ -283,13 +295,18 @@ sub _scan_advisories {
 sub _format_advisory {
 	my ($adv) = @_;
 
-	my $cvss = defined $adv->{cvss} ? sprintf(' (CVSS %.1f)', $adv->{cvss}) : '';
+	# CPAN::Audit::Query returns: id, description, cves (arrayref), severity,
+	# affected_versions, fixed_versions, references, distribution, reported.
+	my $id       = $adv->{id} // 'ADVISORY';
+	my $cve      = ref($adv->{cves}) && @{$adv->{cves}} ? $adv->{cves}[0] : undef;
+	my $label    = $cve ? "$id ($cve)" : $id;
+	my $severity = defined $adv->{severity} ? sprintf(' [%s]', uc $adv->{severity}) : '';
 
 	return sprintf('%s %s: %s%s -- %s',
 		$adv->{module},
 		$adv->{version} // '?',
-		$adv->{cve}     // 'ADVISORY',
-		$cvss,
+		$label,
+		$severity,
 		$adv->{description} // 'see advisory URL',
 	);
 }

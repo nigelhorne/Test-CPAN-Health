@@ -89,7 +89,7 @@ END
 }
 
 # ---------------------------------------------------------------------------
-# META.json with abstract = 'unknown' -> warn, score 50
+# META.json with abstract = 'unknown' -> warn, score 40 (json incomplete)
 # ---------------------------------------------------------------------------
 
 {
@@ -98,7 +98,7 @@ END
 
 	my $result = $check->run($dist);
 	is($result->status, 'warn',   'abstract=unknown -> warn');
-	is($result->score,  50,       'abstract=unknown -> score 50');
+	is($result->score,  40,       'abstract=unknown -> score 40');
 	like($result->summary, qr/abstract/i, 'summary names missing field');
 }
 
@@ -115,6 +115,61 @@ END
 	is($result->score,  70,     'META.yml only -> score 70');
 	like($result->summary, qr/META\.yml/i, 'summary mentions META.yml');
 	is($result->data->{has_json}, 0, 'data reports has_json = 0');
+}
+
+# ---------------------------------------------------------------------------
+# MYMETA.json only (no canonical META) -> warn, score 50
+# ---------------------------------------------------------------------------
+
+{
+	my ($tmp, $dist) = make_dist();
+	write_file(File::Spec->catfile($tmp, 'MYMETA.json'), $FULL_META_JSON);
+
+	my $result = $check->run($dist);
+	is($result->status, 'warn',   'MYMETA.json only -> warn');
+	is($result->score,  50,       'MYMETA.json only -> score 50');
+	like($result->summary, qr/MYMETA/i, 'summary mentions MYMETA');
+}
+
+# ---------------------------------------------------------------------------
+# MYMETA.json wins over MYMETA.yml when both present
+# ---------------------------------------------------------------------------
+
+{
+	my ($tmp, $dist) = make_dist();
+	write_file(File::Spec->catfile($tmp, 'MYMETA.json'), $FULL_META_JSON);
+	write_file(File::Spec->catfile($tmp, 'MYMETA.yml'),  $FULL_META_YML);
+
+	my $result = $check->run($dist);
+	is($result->status, 'warn', 'MYMETA.json+MYMETA.yml -> warn (no canonical)');
+	like($result->summary, qr/MYMETA\.json/i, 'MYMETA.json preferred over MYMETA.yml');
+}
+
+# ---------------------------------------------------------------------------
+# MYMETA.json with missing fields -> warn, score 15
+# ---------------------------------------------------------------------------
+
+{
+	my ($tmp, $dist) = make_dist();
+	write_file(File::Spec->catfile($tmp, 'MYMETA.json'), $UNKNOWN_ABSTRACT_META_JSON);
+
+	my $result = $check->run($dist);
+	is($result->status, 'warn', 'MYMETA incomplete -> warn');
+	is($result->score,  15,     'MYMETA incomplete -> score 15');
+}
+
+# ---------------------------------------------------------------------------
+# Canonical META.json beats MYMETA when both present
+# ---------------------------------------------------------------------------
+
+{
+	my ($tmp, $dist) = make_dist();
+	write_file(File::Spec->catfile($tmp, 'META.json'),   $FULL_META_JSON);
+	write_file(File::Spec->catfile($tmp, 'MYMETA.json'), $UNKNOWN_ABSTRACT_META_JSON);
+
+	my $result = $check->run($dist);
+	is($result->status, 'pass', 'META.json beats MYMETA.json');
+	is($result->score,  100,    'META.json gives full score even with MYMETA present');
 }
 
 # ---------------------------------------------------------------------------
