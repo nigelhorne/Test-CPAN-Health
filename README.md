@@ -97,8 +97,6 @@ upstream API availability and rate limits.
 
 ## analyse
 
-### PURPOSE
-
 Runs all configured checks against the distribution and returns a Report.
 
 All components (Distribution, Cache, Runner, Reporter) are initialised
@@ -142,8 +140,6 @@ May download the distribution from CPAN, run its test suite (if
     print 'Score: ', $report->overall_score, "\n";
 
 ## report\_to
-
-### PURPOSE
 
 Render a Report to the configured output format and return the result
 as a string.  Printing to STDOUT (for terminal/TAP formats) is the

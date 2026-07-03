@@ -285,8 +285,6 @@ sub analyse {
 
 =head2 report_to
 
-=head3 PURPOSE
-
 Render a Report to the configured output format and return the result
 as a string.  Printing to STDOUT (for terminal/TAP formats) is the
 responsibility of the caller or the CLI script.
@@ -354,7 +352,7 @@ sub min_score     { my ($self) = @_; return $self->{_min_score}    }
 # ---------------------------------------------------------------------------
 
 sub _init_distribution {
-	my ($self) = @_;
+	my $self = $_[0];
 
 	require Test::CPAN::Health::Distribution;
 
@@ -376,7 +374,7 @@ sub _init_distribution {
 }
 
 sub _init_cache {
-	my ($self) = @_;
+	my $self = $_[0];
 
 	require Test::CPAN::Health::Cache;
 
@@ -388,7 +386,7 @@ sub _init_cache {
 }
 
 sub _init_runner {
-	my ($self) = @_;
+	my $self = $_[0];
 
 	require Test::CPAN::Health::Runner;
 
@@ -424,7 +422,7 @@ sub _init_runner {
 }
 
 sub _init_reporter {
-	my ($self) = @_;
+	my $self = $_[0];
 
 	Readonly::Hash my %REPORTER_MAP => (
 		terminal => 'Test::CPAN::Health::Reporter::Terminal',
