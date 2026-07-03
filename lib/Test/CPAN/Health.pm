@@ -48,6 +48,31 @@ Readonly::Array my @DEFAULT_CHECKS => qw(
 
 Readonly::Hash my %VALID_FORMATS => map { $_ => 1 } qw(terminal json html tap);
 
+# Maps the short check id (as returned by ->id) to the full class name.
+# Used to normalise --check and --skip CLI arguments that use short ids.
+Readonly::Hash my %CHECK_CLASS_FOR => (
+	sem_ver             => 'Test::CPAN::Health::Check::SemVer',
+	meta_json           => 'Test::CPAN::Health::Check::MetaJSON',
+	license             => 'Test::CPAN::Health::Check::License',
+	min_perl            => 'Test::CPAN::Health::Check::MinPerl',
+	pod_coverage        => 'Test::CPAN::Health::Check::PODCoverage',
+	doc_quality         => 'Test::CPAN::Health::Check::DocQuality',
+	examples            => 'Test::CPAN::Health::Check::Examples',
+	benchmarks          => 'Test::CPAN::Health::Check::Benchmarks',
+	perlcritic          => 'Test::CPAN::Health::Check::Perlcritic',
+	complexity          => 'Test::CPAN::Health::Check::Complexity',
+	duplicate_code      => 'Test::CPAN::Health::Check::DuplicateCode',
+	deprecations        => 'Test::CPAN::Health::Check::Deprecations',
+	test_coverage       => 'Test::CPAN::Health::Check::TestCoverage',
+	kwalitee            => 'Test::CPAN::Health::Check::Kwalitee',
+	ci_config           => 'Test::CPAN::Health::Check::CIConfig',
+	stale_deps          => 'Test::CPAN::Health::Check::StaleDeps',
+	abandoned_deps      => 'Test::CPAN::Health::Check::AbandonedDeps',
+	security_advisories => 'Test::CPAN::Health::Check::SecurityAdvisories',
+	cpan_testers        => 'Test::CPAN::Health::Check::CPANTesters',
+	reverse_deps        => 'Test::CPAN::Health::Check::ReverseDeps',
+);
+
 =head1 NAME
 
 Test::CPAN::Health - Analyse a CPAN distribution and produce a comprehensive health report
@@ -191,8 +216,10 @@ sub new {
 		_severity     => $args->{severity}   // $DEFAULTS{severity},
 		_min_score    => $args->{min_score}  // $DEFAULTS{min_score},
 		_cache_dir    => $args->{cache_dir},
-		_checks       => $args->{checks}     // [@DEFAULT_CHECKS],
-		_skip         => { map { $_ => 1 } @{ $args->{skip} // [] } },
+		_checks       => [ map { $CHECK_CLASS_FOR{$_} // $_ }
+		                       @{ $args->{checks} // [@DEFAULT_CHECKS] } ],
+		_skip         => { map { ($CHECK_CLASS_FOR{$_} // $_) => 1 }
+		                       @{ $args->{skip} // [] } },
 		_path         => $args->{path},
 		_module       => $args->{module},
 		_dist         => $args->{dist},
