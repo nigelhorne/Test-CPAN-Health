@@ -277,7 +277,7 @@ None.
 
 =cut
 
-sub results { return $_[0]->{_results} }
+sub results { my ($self) = @_; return $self->{_results} }
 
 =head2 by_status
 
@@ -382,11 +382,11 @@ sub by_category {
 
 # Convenience counts used by reporters and the CLI exit-code logic.
 
-sub pass_count  { scalar grep { $_->is_pass  } @{$_[0]->{_results}} }
-sub warn_count  { scalar grep { $_->is_warn  } @{$_[0]->{_results}} }
-sub fail_count  { scalar grep { $_->is_fail  } @{$_[0]->{_results}} }
-sub skip_count  { scalar grep { $_->is_skip  } @{$_[0]->{_results}} }
-sub error_count { scalar grep { $_->is_error } @{$_[0]->{_results}} }
+sub pass_count  { my ($self) = @_; return scalar grep { $_->is_pass  } @{$self->{_results}} }
+sub warn_count  { my ($self) = @_; return scalar grep { $_->is_warn  } @{$self->{_results}} }
+sub fail_count  { my ($self) = @_; return scalar grep { $_->is_fail  } @{$self->{_results}} }
+sub skip_count  { my ($self) = @_; return scalar grep { $_->is_skip  } @{$self->{_results}} }
+sub error_count { my ($self) = @_; return scalar grep { $_->is_error } @{$self->{_results}} }
 
 =head2 as_hash
 

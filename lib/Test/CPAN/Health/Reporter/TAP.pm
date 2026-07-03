@@ -124,7 +124,7 @@ sub render {
 
 		my $label = ($result->data->{name} // $result->check_id)
 			. ': ' . $result->summary;
-		$label =~ s/#/[#]/g;    # '#' is TAP-reserved; replace to avoid parse confusion
+		$label =~ s/ [#] /[#]/gx;    # '#' is TAP-reserved; replace to avoid parse confusion
 
 		my $line;
 		if ($result->is_skip) {

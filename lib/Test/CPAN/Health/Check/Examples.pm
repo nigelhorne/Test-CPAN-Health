@@ -47,11 +47,11 @@ Score matrix:
 
 =cut
 
-sub id          { 'examples'                                                    }
-sub name        { 'Examples'                                                    }
-sub description { 'Checks that example scripts are present in the distribution' }
-sub weight      { 2                                                             }
-sub category    { 'quality'                                                     }
+sub id          { return 'examples'                                                    }
+sub name        { return 'Examples'                                                    }
+sub description { return 'Checks that example scripts are present in the distribution' }
+sub weight      { return 2                                                             }
+sub category    { return 'quality'                                                     }
 
 =head2 run
 

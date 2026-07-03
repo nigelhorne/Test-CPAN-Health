@@ -75,11 +75,11 @@ advisory database is absent (i.e. C<CPAN::Audit> is not installed).
 
 =cut
 
-sub id          { 'security_advisories'                                          }
-sub name        { 'Security Advisories'                                          }
-sub description { 'Checks for known CVEs in the distribution and its dependencies' }
-sub weight      { $WEIGHT                                                        }
-sub category    { 'security'                                                     }
+sub id          { return 'security_advisories'                                          }
+sub name        { return 'Security Advisories'                                          }
+sub description { return 'Checks for known CVEs in the distribution and its dependencies' }
+sub weight      { return $WEIGHT                                                 }
+sub category    { return 'security'                                                     }
 
 =head2 run
 
@@ -164,8 +164,8 @@ sub run {
 	#   6. Annotate each detail line with the CVE id and CVSS score.
 	#   7. Attach the MetaCPAN advisory URL for the distribution itself.
 
-	eval { require CPAN::Audit };
-	if ($@) {
+	my $loaded = eval { require CPAN::Audit; 1 };
+	unless ($loaded) {
 		return $self->_skip('CPAN::Audit is not installed (cpanm CPAN::Audit to enable this check)');
 	}
 
@@ -297,7 +297,7 @@ sub _format_advisory {
 sub _advisory_url {
 	my ($dist_name) = @_;
 
-	(my $slug = $dist_name) =~ s/::/-/g;
+	(my $slug = $dist_name) =~ s/ :: /-/gx;
 
 	return "https://security.metacpan.org/advisories/$slug";
 }

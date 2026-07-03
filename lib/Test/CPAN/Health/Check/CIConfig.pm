@@ -74,11 +74,11 @@ Score matrix:
 
 =cut
 
-sub id          { 'ci_config'                                            }
-sub name        { 'CI Configuration'                                     }
-sub description { 'Checks that a valid CI configuration file is present' }
-sub weight      { 4                                                      }
-sub category    { 'ci'                                                   }
+sub id          { return 'ci_config'                                            }
+sub name        { return 'CI Configuration'                                     }
+sub description { return 'Checks that a valid CI configuration file is present' }
+sub weight      { return 4                                                      }
+sub category    { return 'ci'                                                   }
 
 =head2 run
 
@@ -227,11 +227,11 @@ sub _yaml_valid {
 
 	# CPAN::Meta::YAML is a transitive dep via CPAN::Meta (in core since 5.14).
 	# If unavailable, give benefit of the doubt and call the file valid.
-	eval { require CPAN::Meta::YAML };
-	return 1 if $@;
+	my $loaded = eval { require CPAN::Meta::YAML; 1 };
+	return 1 unless $loaded;
 
-	eval { CPAN::Meta::YAML->read($file) };
-	return $@ ? 0 : 1;
+	my $ok = eval { CPAN::Meta::YAML->read($file); 1 };
+	return $ok ? 1 : 0;
 }
 
 =head1 AUTHOR

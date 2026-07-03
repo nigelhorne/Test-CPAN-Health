@@ -64,11 +64,11 @@ by the Runner's C<Test::CPAN::Health::Cache>.
 
 =cut
 
-sub id          { 'reverse_deps'                                                    }
-sub name        { 'Reverse Dependencies'                                            }
-sub description { 'Reports how many CPAN distributions depend on this one'         }
-sub weight      { 2                                                                 }
-sub category    { 'quality'                                                         }
+sub id          { return 'reverse_deps'                                                    }
+sub name        { return 'Reverse Dependencies'                                            }
+sub description { return 'Reports how many CPAN distributions depend on this one'         }
+sub weight      { return 2                                                                 }
+sub category    { return 'quality'                                                         }
 
 =head2 run
 
@@ -135,7 +135,7 @@ sub run {
 		unless defined $dist_name && length $dist_name;
 
 	# MetaCPAN uses dash-separated dist names, not double-colon
-	(my $dist_slug = $dist_name) =~ s/::/-/g;
+	(my $dist_slug = $dist_name) =~ s/ :: /-/gx;
 
 	my ($data, $err) = _http_get(
 		"$METACPAN_API/reverse_dependencies/dist/$dist_slug?size=0",

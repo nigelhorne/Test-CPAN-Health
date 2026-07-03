@@ -60,11 +60,11 @@ names; C<=item> entries are not counted.
 
 =cut
 
-sub id          { 'pod_coverage'                                          }
-sub name        { 'POD Coverage'                                          }
-sub description { 'Checks that all public methods are documented in POD'  }
-sub weight      { 5                                                       }
-sub category    { 'quality'                                               }
+sub id          { return 'pod_coverage'                                          }
+sub name        { return 'POD Coverage'                                          }
+sub description { return 'Checks that all public methods are documented in POD'  }
+sub weight      { return 5                                                       }
+sub category    { return 'quality'                                               }
 
 =head2 run
 
@@ -184,27 +184,29 @@ sub _parse_file {
 	my ($file) = @_;
 
 	open my $fh, '<', $file or return ([], {});
+	my @lines = <$fh>;
+	close $fh;
 
 	my @public_subs;
 	my %pod_names;
 	my $in_pod = 0;
 
-	while (my $line = <$fh>) {
+	for my $line (@lines) {
 		chomp $line;
 
 		# Update POD state first, then still process the directive line itself.
-		if ($line =~ /^=(\w+)/) {
+		if ($line =~ / ^ = (\w+) /x) {
 			$in_pod = ($1 ne 'cut');
 		}
 
-		if ($in_pod && $line =~ /^=head[234]\s+(\w+)/) {
+		if ($in_pod && $line =~ / ^ =head [234] \s+ (\w+) /x) {
 			$pod_names{$1}++;
-		} elsif (!$in_pod && $line =~ /^sub\s+([a-zA-Z]\w*)\b/ && !$EXEMPT_SUBS{$1} && $1 !~ /^_/) {
+		} elsif (!$in_pod && $line =~ / ^ sub \s+ ([a-zA-Z] \w*) \b /x
+				&& !$EXEMPT_SUBS{$1} && $1 !~ / ^ _ /x) {
 			push @public_subs, $1;
 		}
 	}
 
-	close $fh;
 	return (\@public_subs, \%pod_names);
 }
 

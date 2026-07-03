@@ -47,11 +47,11 @@ Score matrix:
 
 =cut
 
-sub id          { 'benchmarks'                                                    }
-sub name        { 'Benchmarks'                                                    }
-sub description { 'Checks that benchmark scripts are present in the distribution' }
-sub weight      { 1                                                               }
-sub category    { 'quality'                                                       }
+sub id          { return 'benchmarks'                                                    }
+sub name        { return 'Benchmarks'                                                    }
+sub description { return 'Checks that benchmark scripts are present in the distribution' }
+sub weight      { return 1                                                               }
+sub category    { return 'quality'                                                       }
 
 =head2 run
 

@@ -230,11 +230,11 @@ END_ROW
 sub _esc {
 	my ($str) = @_;
 	return '' unless defined $str;
-	$str =~ s/&/&amp;/g;
-	$str =~ s/</&lt;/g;
-	$str =~ s/>/&gt;/g;
-	$str =~ s/"/&quot;/g;
-	$str =~ s/'/&#39;/g;
+	$str =~ s/ & /&amp;/gx;
+	$str =~ s/ < /&lt;/gx;
+	$str =~ s/ > /&gt;/gx;
+	$str =~ s/ " /&quot;/gx;
+	$str =~ s/ ' /&#39;/gx;
 	return $str;
 }
 

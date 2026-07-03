@@ -69,16 +69,17 @@ unless ($VALID_FORMATS{ lc $opts{format} }) {
 require Test::CPAN::Health;
 
 # Show which target is being checked, unless quiet mode or a machine-readable format.
-printf "Checking %s ...\n\n",
-	(-e $target ? File::Spec->rel2abs($target) : $target)
-	unless $opts{quiet} || lc($opts{format}) ne 'terminal';
+if (lc($opts{format}) eq 'terminal' && !$opts{quiet}) {
+	printf "Checking %s ...\n\n",
+		(-e $target ? File::Spec->rel2abs($target) : $target);
+}
 
 # Classify target: an existing filesystem entry is a path; a name containing
 # '::' is a Perl module; anything else is treated as a CPAN dist name.
 my %target_arg;
 if (-e $target) {
 	$target_arg{path} = $target;
-} elsif ($target =~ /::/) {
+} elsif ($target =~ / :: /x) {
 	$target_arg{module} = $target;
 } else {
 	$target_arg{dist} = $target;
@@ -93,8 +94,8 @@ my $health = Test::CPAN::Health->new(
 	severity   => $opts{severity},
 	min_score  => $opts{min_score},
 	$opts{cache_dir} ? (cache_dir => $opts{cache_dir})                 : (),
-	$opts{check}     ? (checks    => [split /\s*,\s*/, $opts{check}])  : (),
-	$opts{skip}      ? (skip      => [split /\s*,\s*/, $opts{skip}])   : (),
+	$opts{check}     ? (checks    => [split / \s* , \s* /x, $opts{check}])  : (),
+	$opts{skip}      ? (skip      => [split / \s* , \s* /x, $opts{skip}])   : (),
 );
 
 # Run all enabled checks and render the report.
@@ -110,11 +111,12 @@ if ($opts{output}) {
 	open my $fh, '>', $opts{output};
 	print {$fh} $rendered;
 	close $fh;
-	printf "Report written to %s\n", $opts{output}
-		unless $opts{quiet} || lc($opts{format}) ne 'terminal';
+	if (lc($opts{format}) eq 'terminal' && !$opts{quiet}) {
+		printf "Report written to %s\n", $opts{output};
+	}
 } else {
 	print $rendered;
-	print "\n" unless $rendered =~ /\n\z/;
+	print "\n" unless $rendered =~ / \n \z /x;
 }
 
 # ---------------------------------------------------------------------------

@@ -58,11 +58,11 @@ and C<unknown> (incomplete reports) are excluded from the denominator.
 
 =cut
 
-sub id          { 'cpan_testers'                                              }
-sub name        { 'CPAN Testers'                                              }
-sub description { 'Checks the CPAN Testers pass/fail ratio for the distribution' }
-sub weight      { 8                                                           }
-sub category    { 'ci'                                                        }
+sub id          { return 'cpan_testers'                                              }
+sub name        { return 'CPAN Testers'                                              }
+sub description { return 'Checks the CPAN Testers pass/fail ratio for the distribution' }
+sub weight      { return 8                                                           }
+sub category    { return 'ci'                                                        }
 
 =head2 run
 
@@ -135,7 +135,7 @@ sub run {
 	return $self->_skip('Distribution name not available')
 		unless defined $dist_name && length $dist_name;
 
-	(my $dist_slug = $dist_name) =~ s/::/-/g;
+	(my $dist_slug = $dist_name) =~ s/ :: /-/gx;
 
 	# Search MetaCPAN for the latest indexed release of this distribution.
 	# MetaCPAN embeds aggregated CPAN Testers pass/fail/na/unknown counts in
@@ -172,7 +172,7 @@ sub run {
 	return $self->_skip(
 		sprintf('No CPAN Testers data yet for %s-%s',
 			$dist_slug, $release->{version} // '?')
-	) unless $total > 0;
+	) unless $total;
 
 	my $score  = int($n_pass / $total * 100);
 	my $status = $score >= $SCORE_PASS ? 'pass'

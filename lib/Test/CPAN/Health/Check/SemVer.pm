@@ -13,25 +13,23 @@ use parent 'Test::CPAN::Health::Check';
 our $VERSION = '0.01';
 
 # Semantic versioning regex per semver.org 2.0.0 spec (strictly ASCII).
-# Accepts optional leading 'v'.  Does not accept Perl's x.yyy decimal style.
-Readonly::Scalar my $SEMVER_RE => qr/
-	^v?
-	(0|[1-9]\d*)          # major
-	\.(0|[1-9]\d*)        # minor
-	\.(0|[1-9]\d*)        # patch
-	(?:-(                 # pre-release (optional)
-		(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)
-		(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*
-	))?
-	(?:\+(                # build metadata (optional)
-		[0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*
-	))?
+# Accepts optional leading 'v'.  Split into smaller qr// chunks for readability.
+Readonly::Scalar my $SEMVER_NUM_RE => qr{ 0 | [1-9]\d* }x;
+Readonly::Scalar my $SEMVER_PRE_RE => qr{ - [0-9a-zA-Z.-]+ }x;
+Readonly::Scalar my $SEMVER_BLD_RE => qr{ \+ [0-9a-zA-Z.-]+ }x;
+Readonly::Scalar my $SEMVER_RE => qr{
+	^ v?
+	($SEMVER_NUM_RE)       # major
+	\.($SEMVER_NUM_RE)     # minor
+	\.($SEMVER_NUM_RE)     # patch
+	(?: $SEMVER_PRE_RE )?  # pre-release (optional)
+	(?: $SEMVER_BLD_RE )?  # build metadata (optional)
 	$
-/x;
+}x;
 
 # The "decimal" convention common on CPAN: 1.000001, 0.27, etc.
 # We accept it with a warning because it is pervasive but not semver.
-Readonly::Scalar my $DECIMAL_RE => qr/^v?[0-9]+\.[0-9]+$/;
+Readonly::Scalar my $DECIMAL_RE => qr/ ^ v? [0-9]+ \. [0-9]+ $ /x;
 
 =head1 NAME
 
@@ -81,11 +79,11 @@ a dedicated C<VersionSync> check.
 
 =cut
 
-sub id          { 'sem_ver'                                                 }
-sub name        { 'Semantic Versioning'                                     }
-sub description { 'Checks that the distribution version follows semver 2.0' }
-sub weight      { 3                                                         }
-sub category    { 'packaging'                                               }
+sub id          { return 'sem_ver'                                                 }
+sub name        { return 'Semantic Versioning'                                     }
+sub description { return 'Checks that the distribution version follows semver 2.0' }
+sub weight      { return 3                                                         }
+sub category    { return 'packaging'                                               }
 
 =head2 run
 
@@ -190,7 +188,7 @@ sub run {
 			score   => 60,
 			summary => "Version $version uses Perl-style decimals, not semver",
 			details => [
-				"Consider migrating to X.Y.Z format (e.g. \"${\_decimal_to_semver($version)}\")",
+				'Consider migrating to X.Y.Z format (e.g. "' . _decimal_to_semver($version) . '")',
 				'See https://semver.org for the specification',
 			],
 			data    => { name => $self->name, version => $version },
@@ -219,17 +217,17 @@ sub run {
 sub _decimal_to_semver {
 	my ($decimal) = @_;
 
-	$decimal =~ s/^v//;
+	$decimal =~ s/ ^ v //x;
 
 	# Already has two dots -- might be close to semver already
 	return $decimal if $decimal =~ tr/././ >= 2;
 
-	my ($major, $frac) = split /\./, $decimal, 2;
+	my ($major, $frac) = split / \. /x, $decimal, 2;
 	$frac //= '0';
 
 	# Pad fractional part to 6 digits and split into minor+patch
 	$frac = sprintf('%-06s', $frac);
-	$frac =~ s/\s/0/g;
+	$frac =~ s/ \s /0/gx;
 	my $minor = int(substr($frac, 0, 3));
 	my $patch = int(substr($frac, 3, 3));
 

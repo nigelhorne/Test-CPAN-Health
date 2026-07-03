@@ -289,7 +289,7 @@ None.
 
 =cut
 
-sub path { return $_[0]->{_path} }
+sub path { my ($self) = @_; return $self->{_path} }
 
 =head2 meta
 
@@ -341,11 +341,11 @@ sub meta {
 	my $yml_file  = File::Spec->catfile($self->{_path}, 'META.yml');
 
 	if (-f $json_file) {
-		eval { $self->{_meta} = CPAN::Meta->load_file($json_file) };
-		carp "Cannot parse META.json: $@" if $@;
+		eval { $self->{_meta} = CPAN::Meta->load_file($json_file); 1 }
+			or carp "Cannot parse META.json: $@";
 	} elsif (-f $yml_file) {
-		eval { $self->{_meta} = CPAN::Meta->load_file($yml_file) };
-		carp "Cannot parse META.yml: $@" if $@;
+		eval { $self->{_meta} = CPAN::Meta->load_file($yml_file); 1 }
+			or carp "Cannot parse META.yml: $@";
 	}
 
 	return $self->{_meta};
@@ -365,7 +365,7 @@ sub name {
 		my $meta = $self->meta;
 		$self->{_name} = $meta ? $meta->name : do {
 			my $base = (File::Spec->splitpath($self->{_path}))[2];
-			$base =~ s/-[0-9][0-9._]*$//;
+			$base =~ s/ - [0-9] [0-9._]* $ //x;
 			$base;
 		};
 	}

@@ -86,11 +86,11 @@ C<configure.requires> or C<build.requires> is ignored.
 
 =cut
 
-sub id          { 'min_perl'                                               }
-sub name        { 'Minimum Perl Version'                                   }
-sub description { 'Checks that a minimum Perl version is declared in META' }
-sub weight      { 3                                                        }
-sub category    { 'packaging'                                              }
+sub id          { return 'min_perl'                                               }
+sub name        { return 'Minimum Perl Version'                                   }
+sub description { return 'Checks that a minimum Perl version is declared in META' }
+sub weight      { return 3                                                        }
+sub category    { return 'packaging'                                              }
 
 =head2 run
 
@@ -193,11 +193,12 @@ sub run {
 	my $detected;
 	for my $file (@{ $dist->all_source_files }) {
 		my $min;
-		eval {
+		my $ok = eval {
 			my $pmv = Perl::MinimumVersion->new($file);
 			$min = $pmv->minimum_version;
+			1;
 		};
-		if ($@) {
+		if (!$ok) {
 			carp "Perl::MinimumVersion could not parse $file: $@";
 			next;
 		}
@@ -218,7 +219,7 @@ sub run {
 	}
 
 	# Strip any version-range operator (">= 5.014") to get a bare version.
-	(my $declared_clean = $declared) =~ s/^[><=!]=?\s*//;
+	(my $declared_clean = $declared) =~ s/ ^ [><=!] =? \s* //x;
 	require version;
 	my $declared_v = eval { version->parse($declared_clean) };
 

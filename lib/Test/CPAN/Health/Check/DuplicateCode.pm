@@ -82,11 +82,11 @@ minimum chunk size of 6 in the same relative order.
 
 =cut
 
-sub id          { 'duplicate_code'                                       }
-sub name        { 'Duplicate Code'                                       }
-sub description { 'Detects copy-paste code blocks across source files'   }
-sub weight      { 3                                                      }
-sub category    { 'quality'                                              }
+sub id          { return 'duplicate_code'                                       }
+sub name        { return 'Duplicate Code'                                       }
+sub description { return 'Detects copy-paste code blocks across source files'   }
+sub weight      { return 3                                                      }
+sub category    { return 'quality'                                              }
 
 =head2 run
 
@@ -217,31 +217,31 @@ sub _code_lines {
 	my ($file) = @_;
 
 	open my $fh, '<', $file or return ();
+	my @raw = <$fh>;
+	close $fh;
 
 	my @lines;
 	my $in_pod = 0;
 
-	while (my $line = <$fh>) {
+	for my $line (@raw) {
 		chomp $line;
-		if ($line =~ /^=(\w+)/) {
+		if ($line =~ / ^ = (\w+) /x) {
 			$in_pod = ($1 ne 'cut');
 			next;
 		}
 		next if $in_pod;
 
 		# Normalise whitespace.
-		$line =~ s/^\s+|\s+$//g;
-		$line =~ s/\s+/ /g;
+		$line =~ s/ ^ \s+ | \s+ $ //gx;
+		$line =~ s/ \s+ / /gx;
 
 		next unless length $line;
-		next if $line =~ /^#/;        # pure comment
-		next if $line eq '1;';        # common file-end marker
-		next if $line =~ /^use\s+(?:strict|warnings|autodie|utf8|parent|base)\b/;
+		next if $line =~ / ^ [#] /x;        # pure comment
+		next if $line eq '1;';               # common file-end marker
+		next if $line =~ / ^ use \s+ (?:strict|warnings|autodie|utf8|parent|base) \b /x;
 
 		push @lines, $line;
 	}
-
-	close $fh;
 	return @lines;
 }
 

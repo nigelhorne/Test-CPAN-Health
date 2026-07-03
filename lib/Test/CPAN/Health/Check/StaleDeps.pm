@@ -66,11 +66,11 @@ not flagged even if the module has advanced significantly.
 
 =cut
 
-sub id          { 'stale_deps'                                                  }
-sub name        { 'Stale Dependencies'                                          }
-sub description { 'Checks for dependencies pinned to significantly old versions' }
-sub weight      { 5                                                              }
-sub category    { 'security'                                                    }
+sub id          { return 'stale_deps'                                                  }
+sub name        { return 'Stale Dependencies'                                          }
+sub description { return 'Checks for dependencies pinned to significantly old versions' }
+sub weight      { return 5                                                              }
+sub category    { return 'security'                                                    }
 
 =head2 run
 
@@ -139,47 +139,16 @@ sub run {
 	my $meta = $dist->meta;
 	return $self->_skip('No META file found') unless $meta;
 
-	my $prereqs  = $meta->prereqs;
-	my $runtime  = $prereqs->requirements_for('runtime', 'requires');
-	my %deps     = %{ $runtime->as_string_hash };
-
-	my $use_corelist = eval { require Module::CoreList; 1 };
-
-	# Collect deps that are worth checking (non-core, non-pragma, versioned)
-	my %checkable;
-	for my $mod (sort keys %deps) {
-		next if $mod eq 'perl';
-		next if $mod =~ /^[a-z]/;    # lowercase = pragma (strict, warnings, etc.)
-		if ($use_corelist) {
-			next if Module::CoreList->first_release($mod);
-		}
-		$checkable{$mod} = $deps{$mod};
-	}
-
+	my %checkable = _collect_checkable($meta);
 	return $self->_skip('No checkable runtime dependencies found')
 		unless %checkable;
 
 	my (@stale_mods, @current_mods);
-
 	for my $mod (sort keys %checkable) {
-		my $declared = $checkable{$mod} // '0';
-
-		# Skip deps with no meaningful version constraint ("0" means "any")
-		next if $declared == 0;
-
-		my ($data, $err) = _http_get("$METACPAN_API/module/$mod");
-		next if $err;    # skip quietly if module not indexed
-		next unless defined $data->{version};
-
-		my $dec_major    = _major($declared);
-		my $latest_major = _major($data->{version});
-
-		if ($latest_major > $dec_major) {
-			push @stale_mods, sprintf('%s (declared >= %s, latest %s)',
-				$mod, $declared, $data->{version});
-		} else {
-			push @current_mods, $mod;
-		}
+		my ($is_stale, $detail) = _check_dep_freshness($mod, $checkable{$mod});
+		next unless defined $is_stale;
+		if ($is_stale) { push @stale_mods,   $detail }
+		else           { push @current_mods, $mod    }
 	}
 
 	my $total = @stale_mods + @current_mods;
@@ -210,6 +179,45 @@ sub run {
 	);
 }
 
+sub _collect_checkable {
+	my ($meta) = @_;
+
+	my $prereqs  = $meta->prereqs;
+	my $runtime  = $prereqs->requirements_for('runtime', 'requires');
+	my %deps     = %{ $runtime->as_string_hash };
+
+	my $use_corelist = eval { require Module::CoreList; 1 };
+
+	my %checkable;
+	for my $mod (sort keys %deps) {
+		next if $mod eq 'perl';
+		next if $mod =~ /^ [a-z] /x;    # lowercase = pragma (strict, warnings, etc.)
+		next if $use_corelist && Module::CoreList->first_release($mod);
+		$checkable{$mod} = $deps{$mod};
+	}
+	return %checkable;
+}
+
+sub _check_dep_freshness {
+	my ($mod, $declared) = @_;
+
+	$declared //= '0';
+	return if $declared == 0;    # no meaningful version constraint
+
+	my ($data, $err) = _http_get("$METACPAN_API/module/$mod");
+	return if $err || !defined $data->{version};
+
+	my $dec_major    = _major($declared);
+	my $latest_major = _major($data->{version});
+
+	if ($latest_major > $dec_major) {
+		my $detail = sprintf '%s (declared >= %s, latest %s)',
+			$mod, $declared, $data->{version};
+		return (1, $detail);
+	}
+	return (0, undef);
+}
+
 # ---------------------------------------------------------------------------
 # Private helpers
 # ---------------------------------------------------------------------------
@@ -219,7 +227,7 @@ sub run {
 sub _major {
 	my ($v) = @_;
 	return 0 unless defined $v && length $v;
-	my ($n) = $v =~ /^[v]?(\d+)/;
+	my ($n) = $v =~ /^ [v]? (\d+) /x;
 	return $n // 0;
 }
 

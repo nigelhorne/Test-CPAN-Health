@@ -130,7 +130,7 @@ None.
 
 =cut
 
-sub id { croak ref($_[0]) . ' must implement id()' }
+sub id { my ($self) = @_; croak ref($self) . ' must implement id()' }
 
 =head2 name
 
@@ -171,7 +171,7 @@ None.
 
 =cut
 
-sub name { croak ref($_[0]) . ' must implement name()' }
+sub name { my ($self) = @_; croak ref($self) . ' must implement name()' }
 
 =head2 description
 
@@ -339,7 +339,7 @@ May perform network I/O, filesystem reads, and subprocess invocations.
 
 =cut
 
-sub run { croak ref($_[0]) . ' must implement run()' }
+sub run { my ($self) = @_; croak ref($self) . ' must implement run()' }
 
 # ---------------------------------------------------------------------------
 # Protected helpers for subclasses
@@ -358,6 +358,7 @@ sub _result {
 }
 
 # Convenience: return a skip result with an explanatory message.
+## no critic (ProhibitUnusedPrivateSubroutines)
 sub _skip {
 	my ($self, $reason) = @_;
 
@@ -368,6 +369,7 @@ sub _skip {
 }
 
 # Convenience: return an error result (check itself encountered a problem).
+## no critic (ProhibitUnusedPrivateSubroutines)
 sub _error {
 	my ($self, $message) = @_;
 
@@ -377,9 +379,9 @@ sub _error {
 	);
 }
 
-sub severity   { return $_[0]->{_severity}   }
-sub no_network { return $_[0]->{_no_network} }
-sub no_cover   { return $_[0]->{_no_cover}   }
+sub severity   { my ($self) = @_; return $self->{_severity}   }
+sub no_network { my ($self) = @_; return $self->{_no_network} }
+sub no_cover   { my ($self) = @_; return $self->{_no_cover}   }
 
 =head1 AUTHOR
 

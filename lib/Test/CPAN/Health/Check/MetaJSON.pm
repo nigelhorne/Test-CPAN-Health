@@ -66,11 +66,11 @@ C<'unknown'>, which Dist::Zilla and MakeMaker sometimes use as a placeholder.
 
 =cut
 
-sub id          { 'meta_json'                                              }
-sub name        { 'META.json'                                              }
-sub description { 'Checks that META.json is present, valid, and complete'  }
-sub weight      { 5                                                        }
-sub category    { 'packaging'                                              }
+sub id          { return 'meta_json'                                              }
+sub name        { return 'META.json'                                              }
+sub description { return 'Checks that META.json is present, valid, and complete'  }
+sub weight      { return 5                                                        }
+sub category    { return 'packaging'                                              }
 
 =head2 run
 
@@ -153,8 +153,8 @@ sub run {
 	push @missing, 'version'
 		unless defined $meta->version && length $meta->version;
 	push @missing, 'abstract'
-		unless defined $meta->abstract && length $meta->abstract
-			&& $meta->abstract ne 'unknown';
+		if !defined $meta->abstract || !length $meta->abstract
+			|| $meta->abstract eq 'unknown';
 	push @missing, 'author'  unless @authors;
 	push @missing, 'license' unless @licenses;
 

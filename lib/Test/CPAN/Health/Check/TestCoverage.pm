@@ -93,11 +93,11 @@ distribution root and restores it afterwards.
 
 =cut
 
-sub id          { 'test_coverage'                                                    }
-sub name        { 'Test Coverage'                                                    }
-sub description { 'Measures statement coverage of the test suite via Devel::Cover'  }
-sub weight      { 7                                                                  }
-sub category    { 'ci'                                                               }
+sub id          { return 'test_coverage'                                                    }
+sub name        { return 'Test Coverage'                                                    }
+sub description { return 'Measures statement coverage of the test suite via Devel::Cover'  }
+sub weight      { return 7                                                                  }
+sub category    { return 'ci'                                                               }
 
 =head2 run
 
@@ -168,8 +168,8 @@ sub run {
 
 	return $self->_skip('Skipped (--no-cover is set)') if $self->no_cover;
 
-	eval { require Devel::Cover };
-	return $self->_skip('Devel::Cover is not installed') if $@;
+	my $has_cover = eval { require Devel::Cover; 1 };
+	return $self->_skip('Devel::Cover is not installed') unless $has_cover;
 
 	my @t_files = @{ $dist->t_files };
 	return $self->_skip('No test files found under t/') unless @t_files;
@@ -184,65 +184,15 @@ sub run {
 	my $cover_bin = _find_cover_bin();
 	return $self->_skip('cover binary not found') unless $cover_bin;
 
-	require Cwd;
-	my $orig_dir = Cwd::getcwd();
-	my ($output, $run_err, $tests_failed);
-
-	eval {
-		chdir $dist->path;
-
-		# Remove stale coverage database so results are not merged.
-		remove_tree('cover_db') if -d 'cover_db';
-
-		# Generate the build script if not already present.
-		if ($has_makefile_pl && !-f 'Makefile') {
-			system($^X, 'Makefile.PL') == 0
-				or die "perl Makefile.PL failed (exit $?)";
-		} elsif ($has_build_pl && !-f 'Build') {
-			system($^X, 'Build.PL') == 0
-				or die "perl Build.PL failed (exit $?)";
-		}
-
-		# Run the test suite with Devel::Cover instrumentation.
-		local $ENV{HARNESS_PERL_SWITCHES} = '-MDevel::Cover';
-		local $ENV{PERL5OPT}              = '-MDevel::Cover';
-
-		my $make = _make_command();
-		{
-			no autodie;
-			if (-f 'Build') {
-				$tests_failed = 1 if system('./Build', 'test') != 0;
-			} else {
-				$tests_failed = 1 if system($make, 'test') != 0;
-			}
-		}
-
-		# Generate the text report from the coverage database.
-		open my $fh, '-|', $cover_bin, '-report', 'text'
-			or die "Cannot exec $cover_bin -report text: $!";
-		{
-			local $/;
-			$output = <$fh>;
-		}
-		{
-			no autodie 'close';
-			close $fh;
-		}
-	};
-	$run_err = $@;
-
-	# Always restore the working directory.
-	{
-		no autodie 'chdir';
-		chdir $orig_dir;
-	}
+	my ($output, $run_err, $tests_failed)
+		= _collect_coverage($dist, $has_makefile_pl, $has_build_pl, $cover_bin);
 
 	return $self->_error("Failed to run coverage check: $run_err") if $run_err;
 
 	# Parse statement coverage from the Total row of the text report.
 	# Example: "Total    91.7   88.2   50.0  100.0   75.0  100.0   88.2"
 	my $stmt_pct;
-	if (defined $output && $output =~ /^Total\s+([\d.]+)/m) {
+	if (defined $output && $output =~ / ^ Total \s+ ([\d.]+) /mx) {
 		$stmt_pct = $1 + 0;
 	}
 
@@ -276,11 +226,68 @@ sub run {
 # Private helpers
 # ---------------------------------------------------------------------------
 
+sub _collect_coverage {
+	my ($dist, $has_makefile_pl, $has_build_pl, $cover_bin) = @_;
+
+	require Cwd;
+	my $orig_dir = Cwd::getcwd();
+	my ($output, $run_err, $tests_failed);
+
+	my $ok = eval {
+		chdir $dist->path;
+
+		remove_tree('cover_db') if -d 'cover_db';
+
+		if ($has_makefile_pl && !-f 'Makefile') {
+			system($^X, 'Makefile.PL') == 0
+				or croak "perl Makefile.PL failed (exit $?)";
+		} elsif ($has_build_pl && !-f 'Build') {
+			system($^X, 'Build.PL') == 0
+				or croak "perl Build.PL failed (exit $?)";
+		}
+
+		## no critic (ProhibitPackageVars)
+		local $ENV{HARNESS_PERL_SWITCHES} = '-MDevel::Cover';
+		local $ENV{PERL5OPT}              = '-MDevel::Cover';
+
+		my $make = _make_command();
+		{
+			no autodie;
+			if (-f 'Build') {
+				$tests_failed = 1 if system('./Build', 'test') != 0;
+			} else {
+				$tests_failed = 1 if system($make, 'test') != 0;
+			}
+		}
+
+		open my $fh, '-|', $cover_bin, '-report', 'text'
+			or croak "Cannot exec $cover_bin -report text: $!";
+		{
+			local $/ = undef;
+			$output = <$fh>;
+		}
+		{
+			no autodie 'close';
+			close $fh;
+		}
+		1;
+	};
+	$run_err = $ok ? undef : $@;
+
+	{
+		no autodie 'chdir';
+		chdir $orig_dir;
+	}
+
+	return ($output, $run_err, $tests_failed);
+}
+
 # Locate the 'cover' binary from Devel::Cover's installation directory,
 # falling back to a PATH scan.  Returns the binary path or undef.
 sub _find_cover_bin {
 	require Config;
 
+	## no critic (ProhibitPackageVars)
 	for my $dir (
 		$Config::Config{sitebin},
 		$Config::Config{bin},
@@ -302,6 +309,7 @@ sub _find_cover_bin {
 # Return the configured make command for this perl installation.
 sub _make_command {
 	require Config;
+	## no critic (ProhibitPackageVars)
 	return $Config::Config{make} || 'make';
 }
 

@@ -89,11 +89,11 @@ spec identifiers (lowercase, underscore-separated).
 
 =cut
 
-sub id          { 'license'                                                    }
-sub name        { 'License'                                                    }
-sub description { 'Checks that a valid licence is declared and a file present' }
-sub weight      { 4                                                            }
-sub category    { 'packaging'                                                  }
+sub id          { return 'license'                                                    }
+sub name        { return 'License'                                                    }
+sub description { return 'Checks that a valid licence is declared and a file present' }
+sub weight      { return 4                                                            }
+sub category    { return 'packaging'                                                  }
 
 =head2 run
 

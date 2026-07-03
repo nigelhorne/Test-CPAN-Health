@@ -56,11 +56,11 @@ directory rather than a downloaded distribution.
 
 =cut
 
-sub id          { 'kwalitee'                                                   }
-sub name        { 'CPANTS Kwalitee'                                            }
-sub description { 'Checks CPANTS kwalitee indicators via Module::CPANTS::Analyse' }
-sub weight      { 5                                                             }
-sub category    { 'quality'                                                    }
+sub id          { return 'kwalitee'                                                   }
+sub name        { return 'CPANTS Kwalitee'                                            }
+sub description { return 'Checks CPANTS kwalitee indicators via Module::CPANTS::Analyse' }
+sub weight      { return 5                                                             }
+sub category    { return 'quality'                                                    }
 
 =head2 run
 
@@ -122,8 +122,8 @@ sub run {
 	croak 'dist must be a Test::CPAN::Health::Distribution'
 		unless ref($dist) && $dist->isa('Test::CPAN::Health::Distribution');
 
-	eval { require Module::CPANTS::Analyse };
-	return $self->_skip('Module::CPANTS::Analyse is not installed') if $@;
+	my $loaded = eval { require Module::CPANTS::Analyse; 1 };
+	return $self->_skip('Module::CPANTS::Analyse is not installed') unless $loaded;
 
 	require Module::CPANTS::Kwalitee;
 
@@ -141,12 +141,13 @@ sub run {
 		_dangerous => 1,
 	});
 
-	eval {
+	my $ok = eval {
 		local $SIG{__WARN__} = sub {};    # suppress numerous undef-value warnings
 		$analyser->analyse;
 		$analyser->calc_kwalitee;
+		1;
 	};
-	return $self->_error("Module::CPANTS::Analyse failed: $@") if $@;
+	return $self->_error("Module::CPANTS::Analyse failed: $@") unless $ok;
 
 	my $d      = $analyser->d;
 	my $kwhash = $d->{kwalitee} // {};

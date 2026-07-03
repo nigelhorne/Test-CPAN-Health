@@ -17,7 +17,7 @@ our $VERSION = '0.01';
 Readonly::Array my @REQUIRED_SECTIONS => qw(NAME SYNOPSIS DESCRIPTION AUTHOR);
 
 # Regex matching a LICENSE / COPYRIGHT heading (various spellings).
-Readonly::Scalar my $LICENSE_HEAD_RE => qr/^=head1\s+(?:LICEN[CS]E|COPYRIGHT)/i;
+Readonly::Scalar my $LICENSE_HEAD_RE => qr/ ^ =head1 \s+ (?:LICEN[CS]E|COPYRIGHT) /xi;
 
 # Per-file score assignments.
 Readonly::Scalar my $SCORE_FILE_FULL   => 100;  # no errors, all sections present
@@ -77,11 +77,11 @@ in the result details to keep output concise.
 
 =cut
 
-sub id          { 'doc_quality'                                              }
-sub name        { 'Documentation Quality'                                    }
-sub description { 'Checks POD syntax and the presence of required sections'  }
-sub weight      { 4                                                          }
-sub category    { 'quality'                                                  }
+sub id          { return 'doc_quality'                                              }
+sub name        { return 'Documentation Quality'                                    }
+sub description { return 'Checks POD syntax and the presence of required sections'  }
+sub weight      { return 4                                                          }
+sub category    { return 'quality'                                                  }
 
 =head2 run
 
@@ -228,26 +228,27 @@ sub _pod_sections {
 	my ($file) = @_;
 
 	open my $fh, '<', $file or return ();
+	my @lines = <$fh>;
+	close $fh;
 
 	my %sections;
 	my $in_pod = 0;
 
-	while (my $line = <$fh>) {
+	for my $line (@lines) {
 		chomp $line;
-		if ($line =~ /^=(\w+)/) {
+		if ($line =~ / ^ = (\w+) /x) {
 			$in_pod = ($1 ne 'cut');
 		}
-		if ($in_pod && $line =~ /^=head1\s+(.+)/) {
+		if ($in_pod && $line =~ / ^ =head1 \s+ (.+) /x) {
 			my $title = $1;
-			$title =~ s/\s+$//;
+			$title =~ s/ \s+ $ //x;
 			$sections{$title}++;
-			$sections{LICENSE}++  if $title =~ /LICEN[CS]E/i;
-			$sections{LICENCE}++  if $title =~ /LICEN[CS]E/i;
-			$sections{COPYRIGHT}++ if $title =~ /COPYRIGHT/i;
+			$sections{LICENSE}++   if $title =~ / LICEN [CS] E /xi;
+			$sections{LICENCE}++   if $title =~ / LICEN [CS] E /xi;
+			$sections{COPYRIGHT}++ if $title =~ / COPYRIGHT /xi;
 		}
 	}
 
-	close $fh;
 	return %sections;
 }
 

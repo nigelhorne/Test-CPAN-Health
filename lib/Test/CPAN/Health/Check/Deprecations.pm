@@ -16,13 +16,13 @@ our $VERSION = '0.01';
 # Each entry is a pair: [ qr/PATTERN/, 'Human-readable label' ].
 # Patterns use /m so ^ and $ match per-line within slurped file content.
 Readonly::Array my @DEPRECATED_PATTERNS => (
-	[ qr/\bgiven\s*\(/m,           'given/when (experimental; removed in Perl 5.36 feature bundle)' ],
-	[ qr/\bwhen\s*\(/m,            'when (experimental; removed in Perl 5.36 feature bundle)'       ],
-	[ qr/\$\[/m,                   '$[ array-base variable (deprecated since Perl 5.12)'            ],
-	[ qr/\bUNIVERSAL::isa\s*\(/m,  'UNIVERSAL::isa() as function (deprecated since Perl 5.26)'     ],
-	[ qr/\bUNIVERSAL::can\s*\(/m,  'UNIVERSAL::can() as function (deprecated since Perl 5.26)'     ],
-	[ qr/^\s*use\s+UNIVERSAL\b/m,  'use UNIVERSAL (deprecated since Perl 5.22)'                    ],
-	[ qr/^\s*use\s+Switch\b/m,     'use Switch (removed from core since Perl 5.10)'                ],
+	[ qr/ \b given \s* \( /mx,          'given/when (experimental; removed in Perl 5.36 feature bundle)' ],
+	[ qr/ \b when  \s* \( /mx,          'when (experimental; removed in Perl 5.36 feature bundle)'       ],
+	[ qr/ \$ \[ /mx,                    '$[ array-base variable (deprecated since Perl 5.12)'            ],
+	[ qr/ \b UNIVERSAL::isa \s* \( /mx, 'UNIVERSAL::isa() as function (deprecated since Perl 5.26)'     ],
+	[ qr/ \b UNIVERSAL::can \s* \( /mx, 'UNIVERSAL::can() as function (deprecated since Perl 5.26)'     ],
+	[ qr/ ^ \s* use \s+ UNIVERSAL \b /mx, 'use UNIVERSAL (deprecated since Perl 5.22)'                  ],
+	[ qr/ ^ \s* use \s+ Switch    \b /mx, 'use Switch (removed from core since Perl 5.10)'              ],
 );
 
 # Score thresholds (files with at least one hit / total files).
@@ -82,11 +82,11 @@ incomplete.
 
 =cut
 
-sub id          { 'deprecations'                                                      }
-sub name        { 'Deprecations'                                                      }
-sub description { 'Detects use of deprecated Perl features or removed modules'        }
-sub weight      { 4                                                                   }
-sub category    { 'quality'                                                           }
+sub id          { return 'deprecations'                                                      }
+sub name        { return 'Deprecations'                                                      }
+sub description { return 'Detects use of deprecated Perl features or removed modules'        }
+sub weight      { return 4                                                                   }
+sub category    { return 'quality'                                                           }
 
 =head2 run
 
@@ -156,13 +156,14 @@ sub run {
 
 	for my $file (@files) {
 		my $content;
-		eval {
+		my $ok = eval {
 			open my $fh, '<', $file;
-			local $/;
+			local $/ = undef;
 			$content = <$fh>;
 			close $fh;
+			1;
 		};
-		if ($@ || !defined $content) {
+		if (!$ok || !defined $content) {
 			carp "Could not read $file: $@";
 			next;
 		}

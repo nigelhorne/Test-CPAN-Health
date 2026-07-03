@@ -171,12 +171,13 @@ sub _run_one {
 	}
 
 	my $result;
-	eval {
+	my $ok = eval {
 		local $SIG{__DIE__} = sub { };   # suppress autodie noise inside eval
 		$result = $check->run($dist, $context);
+		1;
 	};
 
-	if ($@) {
+	if (!$ok) {
 		carp sprintf("Check '%s' failed with exception: %s", $check->id, $@);
 		$result = $check->_error("Internal check error: $@");
 	}
@@ -184,7 +185,7 @@ sub _run_one {
 	# Cache successful (non-error) results with network data so they can be
 	# reused across runs without hitting rate-limited APIs every time.
 	if ($self->{_cache} && defined $result && !$result->is_error && defined $cache_key) {
-		$self->{_cache}->set($cache_key, $result->as_hash);
+		$self->{_cache}->store($cache_key, $result->as_hash);
 	}
 
 	return $result;
@@ -195,7 +196,7 @@ sub _run_one {
 sub _cache_key {
 	my ($self, $check, $dist) = @_;
 
-	my $name    = $dist->name    // return undef;
+	my $name    = $dist->name    // return;
 	my $version = $dist->version // 'UNKNOWN';
 
 	return join(':', $check->id, $name, $version);

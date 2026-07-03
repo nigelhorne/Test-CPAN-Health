@@ -122,7 +122,7 @@ None.
 
 =cut
 
-sub check_id { return $_[0]->{_check_id} }
+sub check_id { my ($self) = @_; return $self->{_check_id} }
 
 =head2 status
 
@@ -161,20 +161,20 @@ None.
 
 =cut
 
-sub status  { return $_[0]->{_status}  }
-sub score   { return $_[0]->{_score}   }
-sub summary { return $_[0]->{_summary} }
-sub details { return $_[0]->{_details} }
-sub url     { return $_[0]->{_url}     }
-sub data    { return $_[0]->{_data}    }
+sub status  { my ($self) = @_; return $self->{_status}  }
+sub score   { my ($self) = @_; return $self->{_score}   }
+sub summary { my ($self) = @_; return $self->{_summary} }
+sub details { my ($self) = @_; return $self->{_details} }
+sub url     { my ($self) = @_; return $self->{_url}     }
+sub data    { my ($self) = @_; return $self->{_data}    }
 
 # Convenience predicates -- avoids scattered string comparisons in reporters
 
-sub is_pass  { return $_[0]->{_status} eq 'pass'  }
-sub is_warn  { return $_[0]->{_status} eq 'warn'  }
-sub is_fail  { return $_[0]->{_status} eq 'fail'  }
-sub is_skip  { return $_[0]->{_status} eq 'skip'  }
-sub is_error { return $_[0]->{_status} eq 'error' }
+sub is_pass  { my ($self) = @_; return $self->{_status} eq 'pass'  }
+sub is_warn  { my ($self) = @_; return $self->{_status} eq 'warn'  }
+sub is_fail  { my ($self) = @_; return $self->{_status} eq 'fail'  }
+sub is_skip  { my ($self) = @_; return $self->{_status} eq 'skip'  }
+sub is_error { my ($self) = @_; return $self->{_status} eq 'error' }
 
 =head2 as_hash
 

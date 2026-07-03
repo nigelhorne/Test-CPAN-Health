@@ -56,11 +56,11 @@ with a warning and excluded from the score calculation.
 
 =cut
 
-sub id          { 'perlcritic'                                      }
-sub name        { 'Perl::Critic'                                    }
-sub description { 'Runs Perl::Critic and reports policy violations' }
-sub weight      { 6                                                 }
-sub category    { 'quality'                                         }
+sub id          { return 'perlcritic'                                      }
+sub name        { return 'Perl::Critic'                                    }
+sub description { return 'Runs Perl::Critic and reports policy violations' }
+sub weight      { return 6                                                 }
+sub category    { return 'quality'                                         }
 
 =head2 run
 
@@ -134,11 +134,12 @@ sub run {
 
 	for my $file (@files) {
 		my @violations;
-		eval {
+		my $ok = eval {
 			local $SIG{__WARN__} = sub { };    # suppress PPI noise
 			@violations = $critic->critique($file);
+			1;
 		};
-		if ($@) {
+		if (!$ok) {
 			carp "Perl::Critic could not parse $file: $@";
 			next;
 		}

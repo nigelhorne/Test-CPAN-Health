@@ -58,11 +58,11 @@ flagged.  The signal is I<potentially> abandoned, not definitively so.
 
 =cut
 
-sub id          { 'abandoned_deps'                                           }
-sub name        { 'Abandoned Dependencies'                                   }
-sub description { 'Checks for dependencies that appear to be unmaintained'   }
-sub weight      { 5                                                          }
-sub category    { 'security'                                                 }
+sub id          { return 'abandoned_deps'                                           }
+sub name        { return 'Abandoned Dependencies'                                   }
+sub description { return 'Checks for dependencies that appear to be unmaintained'   }
+sub weight      { return 5                                                          }
+sub category    { return 'security'                                                 }
 
 =head2 run
 
@@ -131,45 +131,19 @@ sub run {
 	my $meta = $dist->meta;
 	return $self->_skip('No META file found') unless $meta;
 
-	my $prereqs = $meta->prereqs;
-	my $runtime = $prereqs->requirements_for('runtime', 'requires');
-	my %deps    = %{ $runtime->as_string_hash };
-
-	my $use_corelist = eval { require Module::CoreList; 1 };
-
-	my @checkable;
-	for my $mod (sort keys %deps) {
-		next if $mod eq 'perl';
-		next if $mod =~ /^[a-z]/;    # pragmas are lowercase
-		if ($use_corelist) {
-			next if Module::CoreList->first_release($mod);
-		}
-		push @checkable, $mod;
-	}
-
+	my @checkable = _collect_checkable($meta);
 	return $self->_skip('No checkable runtime dependencies found')
 		unless @checkable;
 
-	my $now              = time;
-	my $cutoff           = $now - ($ABANDONED_YEARS * $SECS_PER_YEAR);
+	my $now    = time;
+	my $cutoff = $now - ($ABANDONED_YEARS * $SECS_PER_YEAR);
 	my (@abandoned, @active);
 
 	for my $mod (@checkable) {
-		my ($data, $err) = _http_get("$METACPAN_API/module/$mod");
-		next if $err;    # skip quietly if module not indexed on MetaCPAN
-		next unless defined $data->{date};
-
-		my $epoch = _iso8601_to_epoch($data->{date});
-		next unless defined $epoch;
-
-		my $age_years = ($now - $epoch) / $SECS_PER_YEAR;
-
-		if ($epoch < $cutoff) {
-			push @abandoned, sprintf('%s (last release %.1f years ago)',
-				$mod, $age_years);
-		} else {
-			push @active, $mod;
-		}
+		my ($is_abandoned, $detail) = _classify_dep($mod, $now, $cutoff);
+		next unless defined $is_abandoned;
+		if ($is_abandoned) { push @abandoned, $detail }
+		else               { push @active,    $mod    }
 	}
 
 	my $total = @abandoned + @active;
@@ -202,6 +176,41 @@ sub run {
 	);
 }
 
+sub _collect_checkable {
+	my ($meta) = @_;
+
+	my $prereqs      = $meta->prereqs;
+	my $runtime      = $prereqs->requirements_for('runtime', 'requires');
+	my %deps         = %{ $runtime->as_string_hash };
+	my $use_corelist = eval { require Module::CoreList; 1 };
+
+	my @checkable;
+	for my $mod (sort keys %deps) {
+		next if $mod eq 'perl';
+		next if $mod =~ / ^ [a-z] /x;    # pragmas are lowercase
+		next if $use_corelist && Module::CoreList->first_release($mod);
+		push @checkable, $mod;
+	}
+	return @checkable;
+}
+
+sub _classify_dep {
+	my ($mod, $now, $cutoff) = @_;
+
+	my ($data, $err) = _http_get("$METACPAN_API/module/$mod");
+	return if $err || !defined $data->{date};
+
+	my $epoch = _iso8601_to_epoch($data->{date});
+	return unless defined $epoch;
+
+	my $age_years = ($now - $epoch) / $SECS_PER_YEAR;
+	if ($epoch < $cutoff) {
+		my $detail = sprintf '%s (last release %.1f years ago)', $mod, $age_years;
+		return (1, $detail);
+	}
+	return (0, undef);
+}
+
 # ---------------------------------------------------------------------------
 # Private helpers
 # ---------------------------------------------------------------------------
@@ -210,9 +219,9 @@ sub run {
 # Handles both "2024-01-01T12:00:00" and "2024-01-01T12:00:00.000Z".
 sub _iso8601_to_epoch {
 	my ($str) = @_;
-	return undef unless defined $str;
-	my ($y, $mo, $d) = $str =~ /^(\d{4})-(\d{2})-(\d{2})/
-		or return undef;
+	return unless defined $str;
+	my ($y, $mo, $d) = $str =~ / ^ (\d{4}) - (\d{2}) - (\d{2}) /x
+		or return;
 	require Time::Local;
 	return eval {
 		Time::Local::timegm(0, 0, 0, $d + 0, $mo - 1, $y - 1900)

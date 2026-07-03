@@ -60,11 +60,11 @@ Perl syntax correctly.
 
 =cut
 
-sub id          { 'complexity'                                                       }
-sub name        { 'Cyclomatic Complexity'                                            }
-sub description { 'Checks cyclomatic complexity of subroutines against a threshold' }
-sub weight      { 4                                                                  }
-sub category    { 'quality'                                                          }
+sub id          { return 'complexity'                                                       }
+sub name        { return 'Cyclomatic Complexity'                                            }
+sub description { return 'Checks cyclomatic complexity of subroutines against a threshold' }
+sub weight      { return 4                                                                  }
+sub category    { return 'quality'                                                          }
 
 =head2 run
 
@@ -134,11 +134,12 @@ sub run {
 	my $analyzer = Perl::Metrics::Simple->new;
 
 	my $analysis;
-	eval {
+	my $ok = eval {
 		local $SIG{__WARN__} = sub { };    # suppress PPI noise
 		$analysis = $analyzer->analyze_files(@pm_files);
+		1;
 	};
-	if ($@) {
+	if (!$ok) {
 		return $self->_error("Perl::Metrics::Simple failed: $@");
 	}
 

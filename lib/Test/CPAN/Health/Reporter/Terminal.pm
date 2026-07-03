@@ -85,7 +85,7 @@ sub new {
 
 	# Honour NO_COLOR convention and isatty; explicit colour => 0 overrides.
 	my $colour = $args{colour}
-		// ($ENV{NO_COLOR} || !(-t STDOUT) ? 0 : 1);
+		// ($ENV{NO_COLOR} || !( -t STDOUT ) ? 0 : 1);  ## no critic (ProhibitInteractiveTest)
 
 	my $self = bless {
 		_colour  => $colour,

@@ -179,7 +179,7 @@ C<PPI> and may produce false positives on generated or data-heavy code.
 =cut
 
 sub new {
-	my $class = shift;
+	my ($class, @arg_list) = @_;
 	my $args = validate_strict(
 		schema => {
 			distribution => { type => 'object', isa => 'Test::CPAN::Health::Distribution', optional => 1 },
@@ -195,7 +195,7 @@ sub new {
 			min_score    => { type => 'integer',  min => 0, max => 100, optional => 1 },
 			cache_dir    => { type => 'string',   optional => 1 },
 		},
-		input => Params::Get::get_params(undef, \@_) || {}
+		input => Params::Get::get_params(undef, \@arg_list) || {}
 	);
 
 	croak 'One of path, module, dist, or distribution is required'
@@ -273,7 +273,7 @@ C<TestCoverage> is enabled), and write to the local HTTP cache.
 =cut
 
 sub analyse {
-	my $self = $_[0];
+	my ($self) = @_;
 
 	$self->_init_distribution unless $self->{_distribution};
 	$self->_init_cache         unless $self->{_cache};
@@ -341,12 +341,12 @@ sub report_to {
 
 # Read-only accessors
 
-sub distribution { return $_[0]->{_distribution} }
-sub runner       { return $_[0]->{_runner}       }
-sub reporter     { return $_[0]->{_reporter}     }
-sub cache        { return $_[0]->{_cache}        }
-sub format       { return $_[0]->{_format}       }
-sub min_score    { return $_[0]->{_min_score}    }
+sub distribution  { my ($self) = @_; return $self->{_distribution} }
+sub runner        { my ($self) = @_; return $self->{_runner}       }
+sub reporter      { my ($self) = @_; return $self->{_reporter}     }
+sub cache         { my ($self) = @_; return $self->{_cache}        }
+sub output_format { my ($self) = @_; return $self->{_format}       }
+sub min_score     { my ($self) = @_; return $self->{_min_score}    }
 
 # ---------------------------------------------------------------------------
 # Private initialisation helpers
@@ -354,7 +354,7 @@ sub min_score    { return $_[0]->{_min_score}    }
 # ---------------------------------------------------------------------------
 
 sub _init_distribution {
-	my $self = $_[0];
+	my ($self) = @_;
 
 	require Test::CPAN::Health::Distribution;
 
@@ -376,7 +376,7 @@ sub _init_distribution {
 }
 
 sub _init_cache {
-	my $self = $_[0];
+	my ($self) = @_;
 
 	require Test::CPAN::Health::Cache;
 
@@ -388,7 +388,7 @@ sub _init_cache {
 }
 
 sub _init_runner {
-	my $self = $_[0];
+	my ($self) = @_;
 
 	require Test::CPAN::Health::Runner;
 
@@ -398,8 +398,12 @@ sub _init_runner {
 
 		# Defer require so a missing optional check module does not abort
 		# the whole run -- emit a warning and continue instead.
-		eval { (my $file = "$check_class.pm") =~ s{::}{/}g; require $file };
-		if ($@) {
+		my $ok = eval {
+			(my $file = "$check_class.pm") =~ s{ :: }{/}gx;
+			require $file;
+			1;
+		};
+		if (!$ok) {
 			carp "Skipping check $check_class (cannot load): $@";
 			next;
 		}
@@ -420,7 +424,7 @@ sub _init_runner {
 }
 
 sub _init_reporter {
-	my $self = $_[0];
+	my ($self) = @_;
 
 	Readonly::Hash my %REPORTER_MAP => (
 		terminal => 'Test::CPAN::Health::Reporter::Terminal',
@@ -432,8 +436,8 @@ sub _init_reporter {
 	my $reporter_class = $REPORTER_MAP{ $self->{_format} }
 		or croak "No reporter for format '$self->{_format}'";
 
-	eval { (my $file = "$reporter_class.pm") =~ s{::}{/}g; require $file };
-	croak "Cannot load reporter $reporter_class: $@" if $@;
+	eval { (my $file = "$reporter_class.pm") =~ s{ :: }{/}gx; require $file; 1 }
+		or croak "Cannot load reporter $reporter_class: $@";
 
 	$self->{_reporter} = $reporter_class->new;
 

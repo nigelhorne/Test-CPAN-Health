@@ -41,7 +41,7 @@ Test::CPAN::Health::Cache - Persistent SQLite cache for network check results
         cache_dir => "$ENV{HOME}/.cache/cpan-health",
     );
 
-    $cache->set('sem_ver:Foo-Bar:1.00', { status => 'pass', score => 100 });
+    $cache->store('sem_ver:Foo-Bar:1.00', { status => 'pass', score => 100 });
     my $data = $cache->get('sem_ver:Foo-Bar:1.00');
 
 =head1 DESCRIPTION
@@ -150,15 +150,15 @@ sub get {
 
 	if ($@) {
 		carp "Cache read error: $@";
-		return undef;
+		return;
 	}
 
-	return undef unless defined $row;
+	return unless defined $row;
 
-	my $data = eval { decode_json($row->{value}) };
+	my $data = eval { decode_json($row->{value}); };
 	if ($@) {
 		carp "Cache JSON decode error for key '$key': $@";
-		return undef;
+		return;
 	}
 
 	return $data;
@@ -209,11 +209,11 @@ Writes to the SQLite database.
 
 =head3 USAGE EXAMPLE
 
-    $cache->set('sem_ver:Foo-Bar:1.00', { status => 'pass', score => 100 });
+    $cache->store('sem_ver:Foo-Bar:1.00', { status => 'pass', score => 100 });
 
 =cut
 
-sub set {
+sub store {
 	my ($self, $key, $value, $ttl) = @_;
 
 	croak 'key is required'   unless defined $key   && length $key;
@@ -230,11 +230,10 @@ sub set {
 			'INSERT OR REPLACE INTO cache (key, value, expires) VALUES (?, ?, ?)',
 			undef, $key, $json, $expires,
 		);
-	};
-
-	if ($@) {
+		1;
+	} or do {
 		carp "Cache write error: $@";
-	}
+	};
 
 	return $self;
 }
@@ -285,7 +284,7 @@ Deletes rows from the SQLite database.
 =cut
 
 sub purge {
-	my $self = $_[0];
+	my ($self) = @_;
 
 	my $dbh     = $self->_dbh;
 	my $deleted = 0;
@@ -293,11 +292,10 @@ sub purge {
 	eval {
 		$deleted = $dbh->do('DELETE FROM cache WHERE expires <= ?', undef, time);
 		$deleted = 0 if $deleted eq '0E0';
-	};
-
-	if ($@) {
+		1;
+	} or do {
 		carp "Cache purge error: $@";
-	}
+	};
 
 	return $deleted;
 }
@@ -308,7 +306,7 @@ sub purge {
 
 # Return or create the DBI handle, creating the schema on first connect.
 sub _dbh {
-	my $self = $_[0];
+	my ($self) = @_;
 
 	return $self->{_dbh} if $self->{_dbh};
 
@@ -333,7 +331,7 @@ sub _dbh {
 }
 
 sub _ensure_schema {
-	my $self = $_[0];
+	my ($self) = @_;
 
 	$self->{_dbh}->do(<<'SQL');
 CREATE TABLE IF NOT EXISTS cache (
@@ -352,7 +350,7 @@ SQL
 sub _ttl_for {
 	my ($self, $key) = @_;
 
-	my ($check_id) = split /:/, $key, 2;
+	my ($check_id) = split / : /x, $key, 2;
 
 	return $self->{_ttls}{$check_id} // $self->{_ttls}{DEFAULT} // 86_400;
 }
@@ -366,7 +364,7 @@ sub _default_cache_dir {
 }
 
 sub DESTROY {
-	my $self = $_[0];
+	my ($self) = @_;
 
 	if ($self->{_dbh}) {
 		$self->{_dbh}->disconnect;
