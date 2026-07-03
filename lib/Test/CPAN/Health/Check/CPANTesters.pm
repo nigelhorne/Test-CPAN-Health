@@ -5,6 +5,8 @@ use warnings;
 use autodie qw(:all);
 
 use Carp qw(croak carp);
+use HTTP::Tiny ();
+use JSON::MaybeXS ();
 use Readonly;
 use Params::Validate::Strict qw(validate_strict);
 
@@ -209,9 +211,6 @@ sub run {
 
 sub _http_post {
 	my ($url, $body) = @_;
-
-	require HTTP::Tiny;
-	require JSON::MaybeXS;
 
 	my $ua  = HTTP::Tiny->new(timeout => $HTTP_TIMEOUT);
 	my $res = $ua->post($url, {

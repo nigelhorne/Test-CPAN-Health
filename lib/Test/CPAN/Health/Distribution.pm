@@ -57,6 +57,15 @@ for local checkouts.  Canonical META files are produced by C<make distdir>
 (MakeMaker) or C<dzil build> (Dist::Zilla) and must be committed separately.
 Returns C<undef> only when none of these files are present.
 
+=item * C<file_path> does not sanitise C<@parts> for path-traversal sequences
+(e.g. C<../>).  It is the caller's responsibility to supply trusted path
+components.  Do not pass user-supplied strings to C<file_path> without prior
+validation.
+
+=item * C<all_source_files> returns the union of C<pm_files> and C<pl_files>
+at the time of the first call; the result is cached.  Files added to the
+distribution tree afterwards are not visible.
+
 =back
 
 =cut
@@ -75,15 +84,18 @@ sub new {
 		unless -d $args{path};
 
 	my $self = bless {
-		_path     => File::Spec->rel2abs($args{path}),
-		_meta     => undef,
-		_pm_files => undef,
-		_t_files  => undef,
-		_pl_files => undef,
-		_name     => undef,
-		_version  => undef,
-		_author   => undef,
-		_tmp_dir  => undef,    # set by factory methods; owned for cleanup
+		_path              => File::Spec->rel2abs($args{path}),
+		_meta              => undef,
+		_pm_files          => undef,
+		_t_files           => undef,
+		_pl_files          => undef,
+		_all_source_files  => undef,    # cached union of pm_files and pl_files
+		_name              => undef,
+		_version_loaded    => 0,        # true once version() has been computed
+		_version           => undef,
+		_author_loaded     => 0,        # true once author() has been computed
+		_author            => undef,
+		_tmp_dir           => undef,    # set by factory methods; owned for cleanup
 	}, $class;
 
 	return $self;
@@ -380,16 +392,21 @@ sub name {
 
 =head2 version
 
-Returns the distribution version string from META, or C<undef> if not determinable.
+Returns the distribution version string from META, or C<undef> if not
+determinable.  The result is cached after the first call; a dist whose
+META lacks a version field always returns C<undef> without re-parsing.
 
 =cut
 
 sub version {
 	my ($self) = @_;
 
-	unless (defined $self->{_version}) {
+	# Use a loaded-flag rather than defined() so that undef (a legitimate
+	# result when META has no version) is itself cached and not recomputed.
+	unless ($self->{_version_loaded}) {
 		my $meta = $self->meta;
-		$self->{_version} = $meta ? $meta->version : undef;
+		$self->{_version}        = $meta ? $meta->version : undef;
+		$self->{_version_loaded} = 1;
 	}
 
 	return $self->{_version};
@@ -397,19 +414,22 @@ sub version {
 
 =head2 author
 
-Returns the first author string from META, or C<undef>.
+Returns the first author string from META, or C<undef>.  Cached after
+the first call.
 
 =cut
 
 sub author {
 	my ($self) = @_;
 
-	unless (defined $self->{_author}) {
+	# Loaded-flag pattern for the same reason as version() above.
+	unless ($self->{_author_loaded}) {
 		my $meta = $self->meta;
 		if ($meta) {
 			my @authors = $meta->author;
 			$self->{_author} = $authors[0];
 		}
+		$self->{_author_loaded} = 1;
 	}
 
 	return $self->{_author};
@@ -472,14 +492,18 @@ sub pl_files {
 
 =head2 all_source_files
 
-Convenience: returns the union of pm_files and pl_files.
+Convenience: returns the union of C<pm_files> and C<pl_files> as a single
+arrayref.  The result is cached after the first call.
 
 =cut
 
 sub all_source_files {
 	my ($self) = @_;
 
-	return [ @{$self->pm_files}, @{$self->pl_files} ];
+	# Cache the union to avoid rescanning directories on repeated calls.
+	$self->{_all_source_files} //= [ @{$self->pm_files}, @{$self->pl_files} ];
+
+	return $self->{_all_source_files};
 }
 
 =head2 has_dir

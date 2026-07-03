@@ -5,6 +5,8 @@ use warnings;
 use autodie qw(:all);
 
 use Carp qw(croak carp);
+use HTTP::Tiny ();       # load at compile time so mock_scoped works in tests
+use JSON::MaybeXS ();   # same reason -- lazy require inside _http_get is overwritten
 use Readonly;
 use Params::Validate::Strict qw(validate_strict);
 
@@ -183,9 +185,9 @@ sub run {
 sub _http_get {
 	my ($url) = @_;
 
-	require HTTP::Tiny;
-	require JSON::MaybeXS;
-
+	# HTTP::Tiny and JSON::MaybeXS are loaded at compile time (use at top of
+	# file) so that test mocks installed via mock_scoped are not overwritten
+	# when a lazy require fires inside this helper on first invocation.
 	my $ua  = HTTP::Tiny->new(timeout => $HTTP_TIMEOUT);
 	my $res = $ua->get($url, { headers => { 'Accept' => 'application/json' } });
 

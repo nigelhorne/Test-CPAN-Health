@@ -5,6 +5,8 @@ use warnings;
 use autodie qw(:all);
 
 use Carp qw(croak carp);
+use HTTP::Tiny ();
+use JSON::MaybeXS ();
 use Readonly;
 use Params::Validate::Strict qw(validate_strict);
 
@@ -231,9 +233,6 @@ sub _iso8601_to_epoch {
 
 sub _http_get {
 	my ($url) = @_;
-
-	require HTTP::Tiny;
-	require JSON::MaybeXS;
 
 	my $ua  = HTTP::Tiny->new(timeout => $HTTP_TIMEOUT);
 	my $res = $ua->get($url, { headers => { 'Accept' => 'application/json' } });
