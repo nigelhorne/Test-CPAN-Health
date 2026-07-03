@@ -546,21 +546,24 @@ subtest 'Cache: TTL lookup, get/store/purge, default dir, DESTROY' => sub {
 	is_deeply($cache3->get('fresh:c:1'), { x => 3 }, 'purge kept fresh entry');
 
 	# --- _default_cache_dir respects CACHEDIR env var ---
+	# Use File::Spec to build portable paths so the regexes work on Windows too.
 	{
-		local $ENV{CACHEDIR}   = '/custom/cache';
+		my $base = File::Spec->catdir(File::Spec->rootdir(), 'custom', 'cache');
+		local $ENV{CACHEDIR}   = $base;
 		local $ENV{CACHE_DIR}  = undef;
 		my $dir = Test::CPAN::Health::Cache::_default_cache_dir();
-		like($dir, qr{/custom/cache}, '_default_cache_dir: uses CACHEDIR');
-		like($dir, qr{/cpan-health$}, '_default_cache_dir: CACHEDIR appends cpan-health subdir');
+		like($dir, qr{\Q$base\E},        '_default_cache_dir: uses CACHEDIR');
+		like($dir, qr{\Qcpan-health\E$}, '_default_cache_dir: CACHEDIR appends cpan-health subdir');
 	}
 
 	# --- _default_cache_dir falls back to CACHE_DIR when CACHEDIR is not set ---
 	{
+		my $alt = File::Spec->catdir(File::Spec->rootdir(), 'alt', 'cache');
 		local $ENV{CACHEDIR}  = undef;
-		local $ENV{CACHE_DIR} = '/alt/cache';
+		local $ENV{CACHE_DIR} = $alt;
 		my $dir = Test::CPAN::Health::Cache::_default_cache_dir();
-		like($dir, qr{/alt/cache},   '_default_cache_dir: uses CACHE_DIR as fallback');
-		like($dir, qr{/cpan-health$}, '_default_cache_dir: CACHE_DIR appends cpan-health subdir');
+		like($dir, qr{\Q$alt\E},         '_default_cache_dir: uses CACHE_DIR as fallback');
+		like($dir, qr{\Qcpan-health\E$}, '_default_cache_dir: CACHE_DIR appends cpan-health subdir');
 	}
 
 	# --- DESTROY disconnects without crashing ---
@@ -633,7 +636,11 @@ subtest 'Runner: _cache_key, run, context propagation, error handling' => sub {
 	}
 
 	my $runner_ex  = Test::CPAN::Health::Runner->new(checks => [ExplodingCheck->new]);
-	my $rep_ex     = $runner_ex->run(MockDist->new);
+	my $rep_ex;
+	# Runner carps when a check throws; capture it so STDERR stays clean during test runs.
+	warnings_like { $rep_ex = $runner_ex->run(MockDist->new) }
+		qr/Check 'exploder' failed with exception/,
+		'runner carps with check id when a check throws';
 	is(scalar @{$rep_ex->results}, 1, 'exception produces one error Result');
 	is($rep_ex->results->[0]->status, $STATUS{ERROR}, 'error Result has status=error');
 	like($rep_ex->results->[0]->summary, qr/simulated failure/,
