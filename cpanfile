@@ -29,7 +29,7 @@ requires 'YAML::Tiny';
 on 'test' => sub {
 	requires 'IPC::System::Simple';
 	requires 'Test::Exception';
-	requires 'Test::MockObject';
+	requires 'Test::Mockingbird';
 	requires 'Test::Most';
 };
 
