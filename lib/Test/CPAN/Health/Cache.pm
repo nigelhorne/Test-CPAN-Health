@@ -356,11 +356,12 @@ sub _ttl_for {
 }
 
 sub _default_cache_dir {
-	if($ENV{CACHEDIR} || $ENV{CACHE_DIR}) {
-		return $ENV{CACHEDIR} || $ENV{CACHE_DIR};
-	}
-	my $home = $ENV{HOME} // $ENV{USERPROFILE} // File::Spec->tmpdir();
-	return File::Spec->catdir($home, '.cache', 'cpan-health');
+	my $base = $ENV{CACHEDIR} || $ENV{CACHE_DIR}
+		|| File::Spec->catdir(
+			$ENV{HOME} // $ENV{USERPROFILE} // File::Spec->tmpdir(),
+			'.cache',
+		);
+	return File::Spec->catdir($base, 'cpan-health');
 }
 
 sub DESTROY {

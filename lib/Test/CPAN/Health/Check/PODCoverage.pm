@@ -131,16 +131,19 @@ sub run {
 	}
 
 	my ($total_subs, $covered_subs) = (0, 0);
-	my @undocumented;
+	my @undocumented;   # arrayrefs of [ $rel_path, $sub_name ]
+
+	my $dist_root = $dist->path;
 
 	for my $file (@pm_files) {
+		my $rel = File::Spec->abs2rel($file, $dist_root);
 		my ($pub_subs_ref, $pod_names_ref) = _parse_file($file);
 		for my $sub_name (@{$pub_subs_ref}) {
 			$total_subs++;
 			if ($pod_names_ref->{$sub_name}) {
 				$covered_subs++;
 			} else {
-				push @undocumented, $sub_name;
+				push @undocumented, [ $rel, $sub_name ];
 			}
 		}
 	}
@@ -155,7 +158,9 @@ sub run {
 	           : $score >= $SCORE_WARN ? 'warn'
 	           :                         'fail';
 
-	my @details = map { "Undocumented: $_" } @undocumented;
+	my @details = map { "Undocumented: $_->[0]: $_->[1]" }
+	              sort { $a->[0] cmp $b->[0] || $a->[1] cmp $b->[1] }
+	              @undocumented;
 
 	return $self->_result(
 		status  => $status,
@@ -166,10 +171,10 @@ sub run {
 		),
 		details => \@details,
 		data    => {
-			name        => $self->name,
-			total       => $total_subs,
-			covered     => $covered_subs,
-			undocumented => \@undocumented,
+			name         => $self->name,
+			total        => $total_subs,
+			covered      => $covered_subs,
+			undocumented => [ map { "$_->[0]: $_->[1]" } @undocumented ],
 		},
 	);
 }
