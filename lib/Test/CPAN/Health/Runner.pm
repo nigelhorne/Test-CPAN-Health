@@ -180,6 +180,17 @@ sub _run_one {
 	if (!$ok) {
 		carp sprintf("Check '%s' failed with exception: %s", $check->id, $@);
 		$result = $check->_error("Internal check error: $@");
+	} elsif (defined $result
+		&& !(blessed($result) && $result->isa('Test::CPAN::Health::Result')))
+	{
+		# A check that returns a defined non-Result value is a programming error.
+		# Convert it to an error Result so the run can continue rather than dying
+		# when the outer loop tries to call $result->data->{category}.
+		carp sprintf("Check '%s' returned a non-Result value (type: %s); treating as error",
+			$check->id, ref($result) || 'SCALAR');
+		$result = $check->_error(
+			sprintf('Check returned non-Result: %s', ref($result) || 'SCALAR'),
+		);
 	}
 
 	# Cache pass/warn/fail results so network API calls are not repeated.
