@@ -142,11 +142,14 @@ sub run {
 	);
 	return $self->_error("MetaCPAN API error: $err") if $err;
 
-	# MetaCPAN may return {total: N} or {hits: {total: {value: N}}} depending
-	# on the Elasticsearch version behind the API.
+	# MetaCPAN may return:
+	#   {total: N}                      -- legacy top-level form
+	#   {hits: {total: {value: N}}}     -- Elasticsearch 7+ wrapped form
+	#   {hits: {total: N}}              -- Elasticsearch 6 plain integer form
+	# Guard the {value} deref so a plain integer does not crash under strict.
+	my $hits_total = $data->{hits}{total};
 	my $count = $data->{total}
-	         // $data->{hits}{total}{value}
-	         // $data->{hits}{total}
+	         // ( ref($hits_total) eq 'HASH' ? $hits_total->{value} : $hits_total )
 	         // 0;
 
 	my ($score, $status);

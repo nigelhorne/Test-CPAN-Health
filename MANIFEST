@@ -37,6 +37,7 @@ MANIFEST.SKIP
 README.md
 scripts/cpan-health
 t/edge_cases.t
+t/extended_tests.t
 t/function.t
 t/integration.t
 t/integration/cli.t
