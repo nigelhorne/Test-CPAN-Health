@@ -28,9 +28,9 @@ requires 'YAML::Tiny';
 
 on 'test' => sub {
 	requires 'IPC::System::Simple';
-	requires 'Test::Exception';
 	requires 'Test::Mockingbird';
 	requires 'Test::Most';
+	requires 'Test::Returns';
 };
 
 on 'develop' => sub {
