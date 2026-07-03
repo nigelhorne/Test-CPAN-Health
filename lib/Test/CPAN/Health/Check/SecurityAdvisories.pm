@@ -277,14 +277,16 @@ sub _scan_advisories {
 
 	# Scan direct dependencies
 	for my $mod (keys %direct_modules) {
-		my $ver      = $direct_modules{$mod};
+		my $ver = _effective_version($mod, $direct_modules{$mod});
+		next unless defined $ver;
 		my @findings = $query->advisories_for($mod, $ver);
 		push @direct, map { { module => $mod, version => $ver, %{$_} } } @findings;
 	}
 
 	# Scan indirect dependencies
 	for my $mod (keys %indirect_modules) {
-		my $ver      = $indirect_modules{$mod};
+		my $ver = _effective_version($mod, $indirect_modules{$mod});
+		next unless defined $ver;
 		my @findings = $query->advisories_for($mod, $ver);
 		push @indirect, map { { module => $mod, version => $ver, %{$_} } } @findings;
 	}
@@ -309,6 +311,38 @@ sub _format_advisory {
 		$severity,
 		$adv->{description} // 'see advisory URL',
 	);
+}
+
+# Return the version to pass to advisories_for().
+#
+# Two cases where the META-declared version is wrong to use:
+#
+# 1. 'perl' -- the declared minimum is a lower bound (e.g. 5.014), not the
+#    interpreter actually running.  Scanning 5.014 floods results with CVEs
+#    fixed long ago.  Use the running interpreter version instead.
+#
+# 2. Version '0' (no constraint) -- means "any version is acceptable", so
+#    advisories_for receives '0' and returns every advisory ever filed for the
+#    module.  Instead load the module and read its actual VERSION; if it is not
+#    installed, return undef so the caller can skip it.
+sub _effective_version {
+	my ($mod, $declared) = @_;
+
+	return sprintf('%.6f', $]) if $mod eq 'perl';
+
+	if (!defined $declared || $declared eq '0') {
+		return _installed_version($mod);
+	}
+
+	return $declared;
+}
+
+# Try to load a module and return its $VERSION string, or undef if not installed.
+sub _installed_version {
+	my ($mod) = @_;
+	(my $file = "$mod.pm") =~ s{ :: }{/}gx;
+	my $ok = eval { require $file; 1 };
+	return $ok ? $mod->VERSION : undef;
 }
 
 sub _advisory_url {

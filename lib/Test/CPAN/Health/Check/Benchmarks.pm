@@ -141,7 +141,11 @@ sub run {
 		status  => 'fail',
 		score   => 0,
 		summary => 'No benchmarks directory found (bench/, benchmarks/, or benchmark/)',
-		details => ['Consider adding benchmarks in a bench/ or benchmarks/ directory'],
+		details => [
+			'Create a bench/ or benchmarks/ directory containing Perl scripts that use the Benchmark module',
+			'Each script should time key operations or compare alternative implementations, e.g.: use Benchmark qw(cmpthese); cmpthese(-1, { approach_a => sub { ... }, approach_b => sub { ... } })',
+			'Benchmarks help users choose between options and help maintainers catch performance regressions early',
+		],
 		data    => { name => $self->name },
 	);
 }

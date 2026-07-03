@@ -312,7 +312,7 @@ sub _dbh {
 
 	make_path($self->{_cache_dir}) unless -d $self->{_cache_dir};
 
-	my $db_file = File::Spec->catfile($self->{_cache_dir}, 'cache.db');
+	my $db_file = File::Spec->catfile($self->{_cache_dir}, 'cpan-health.db');
 
 	$self->{_dbh} = DBI->connect(
 		"dbi:SQLite:dbname=$db_file", '', '',

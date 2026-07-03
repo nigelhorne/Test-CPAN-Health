@@ -141,7 +141,11 @@ sub run {
 		status  => 'fail',
 		score   => 0,
 		summary => 'No examples directory found (examples/, eg/, or example/)',
-		details => ['Consider adding example scripts in an examples/ or eg/ directory'],
+		details => [
+			'Create an examples/ or eg/ directory containing short, runnable Perl scripts that demonstrate typical use cases',
+			'Each script should be self-contained: load the module, perform one clear task, and print output so users can run it directly with "perl examples/basic_usage.pl"',
+			'Good examples cover the most common use cases and lower the barrier for new users getting started',
+		],
 		data    => { name => $self->name },
 	);
 }
