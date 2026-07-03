@@ -152,7 +152,8 @@ sub run {
 
 	my $n_abandoned = scalar @abandoned;
 	my $score       = int(($total - $n_abandoned) / $total * 100);
-	my $status      = $score >= $SCORE_PASS ? 'pass'
+	# Any abandoned dep is worth at least a warning so details are always shown.
+	my $status      = $n_abandoned == 0     ? 'pass'
 	                : $score >= $SCORE_WARN ? 'warn'
 	                :                         'fail';
 
@@ -179,7 +180,7 @@ sub run {
 sub _collect_checkable {
 	my ($meta) = @_;
 
-	my $prereqs      = $meta->prereqs;
+	my $prereqs      = $meta->effective_prereqs;
 	my $runtime      = $prereqs->requirements_for('runtime', 'requires');
 	my %deps         = %{ $runtime->as_string_hash };
 	my $use_corelist = eval { require Module::CoreList; 1 };

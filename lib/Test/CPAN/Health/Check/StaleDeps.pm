@@ -182,7 +182,7 @@ sub run {
 sub _collect_checkable {
 	my ($meta) = @_;
 
-	my $prereqs  = $meta->prereqs;
+	my $prereqs  = $meta->effective_prereqs;
 	my $runtime  = $prereqs->requirements_for('runtime', 'requires');
 	my %deps     = %{ $runtime->as_string_hash };
 

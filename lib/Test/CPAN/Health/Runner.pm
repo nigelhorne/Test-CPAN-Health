@@ -182,9 +182,14 @@ sub _run_one {
 		$result = $check->_error("Internal check error: $@");
 	}
 
-	# Cache successful (non-error) results with network data so they can be
-	# reused across runs without hitting rate-limited APIs every time.
-	if ($self->{_cache} && defined $result && !$result->is_error && defined $cache_key) {
+	# Cache pass/warn/fail results so network API calls are not repeated.
+	# Skip results are NOT cached -- they reflect runtime flags (e.g. --no-network)
+	# or missing optional deps, not immutable distribution properties.  Caching a
+	# skip would hide the real result on the next run once the flag is removed or
+	# the optional dep is installed.
+	if ($self->{_cache} && defined $result
+		&& !$result->is_error && !$result->is_skip && defined $cache_key)
+	{
 		$self->{_cache}->store($cache_key, $result->as_hash);
 	}
 
