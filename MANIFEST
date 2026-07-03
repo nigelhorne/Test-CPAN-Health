@@ -36,6 +36,7 @@ MANIFEST			This list of files
 MANIFEST.SKIP
 README.md
 scripts/cpan-health
+t/function.t
 t/integration/cli.t
 t/unit/00-load.t
 t/unit/abandoneddeps.t
