@@ -162,7 +162,7 @@ sub run {
 	my $summary = $n_abandoned
 		? "$n_abandoned of $total runtime dependencies may be abandoned "
 		  . "(no release in $ABANDONED_YEARS+ years)"
-		: "All $total checked runtime dependencies are actively maintained";
+		: ($total == 2 ? 'Both' : "All $total") . ' checked runtime dependencies are actively maintained';
 
 	return $self->_result(
 		status  => $status,

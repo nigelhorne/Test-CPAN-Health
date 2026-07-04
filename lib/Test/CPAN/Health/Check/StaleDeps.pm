@@ -164,7 +164,7 @@ sub run {
 
 	my $summary = $n_stale
 		? "$n_stale of $total runtime dependencies may be stale (major version behind)"
-		: "All $total checked runtime dependencies are current";
+		: ($total == 2 ? 'Both' : "All $total") . ' checked runtime dependencies are current';
 
 	return $self->_result(
 		status  => $status,
