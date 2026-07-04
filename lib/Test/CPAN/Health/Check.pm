@@ -434,11 +434,11 @@ sub no_cover   { my ($self) = @_; return $self->{_no_cover}   }
 
 =head1 AUTHOR
 
-Nigel Horne, C<< <njh at bandsman.co.uk> >>
+Nigel Horne, C<< <njh at nigelhorne.com> >>
 
 =head1 LICENSE AND COPYRIGHT
 
-Copyright (C) 2025 Nigel Horne.
+Copyright (C) 2025-2026 Nigel Horne.
 
 This program is free software; you can redistribute it and/or modify it
 under the terms of the GNU General Public License as published by the Free

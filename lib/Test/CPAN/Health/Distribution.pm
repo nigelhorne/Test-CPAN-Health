@@ -380,7 +380,8 @@ sub name {
 
 	unless (defined $self->{_name}) {
 		my $meta = $self->meta;
-		$self->{_name} = $meta ? $meta->name : do {
+		my $meta_name = $meta ? $meta->name : undef;
+		$self->{_name} = (defined $meta_name && length $meta_name) ? $meta_name : do {
 			my $base = (File::Spec->splitpath($self->{_path}))[2];
 			$base =~ s/ - [0-9] [0-9._]* $ //x;
 			$base;
@@ -552,11 +553,11 @@ sub DESTROY {
 
 =head1 AUTHOR
 
-Nigel Horne, C<< <njh at bandsman.co.uk> >>
+Nigel Horne, C<< <njh at nigelhorne.com> >>
 
 =head1 LICENSE AND COPYRIGHT
 
-Copyright (C) 2025 Nigel Horne.
+Copyright (C) 2025-2026 Nigel Horne.
 
 This program is free software; you can redistribute it and/or modify it
 under the terms of the GNU General Public License as published by the Free

@@ -27,6 +27,8 @@ Readonly::Hash my %DEFAULTS => (
 Readonly::Array my @DEFAULT_CHECKS => qw(
 	Test::CPAN::Health::Check::SemVer
 	Test::CPAN::Health::Check::MetaJSON
+	Test::CPAN::Health::Check::Changelog
+	Test::CPAN::Health::Check::DeclaredDeps
 	Test::CPAN::Health::Check::License
 	Test::CPAN::Health::Check::MinPerl
 	Test::CPAN::Health::Check::PODCoverage
@@ -54,6 +56,8 @@ Readonly::Hash my %VALID_FORMATS => map { $_ => 1 } qw(terminal json html tap);
 Readonly::Hash my %CHECK_CLASS_FOR => (
 	sem_ver             => 'Test::CPAN::Health::Check::SemVer',
 	meta_json           => 'Test::CPAN::Health::Check::MetaJSON',
+	changelog           => 'Test::CPAN::Health::Check::Changelog',
+	declared_deps       => 'Test::CPAN::Health::Check::DeclaredDeps',
 	license             => 'Test::CPAN::Health::Check::License',
 	min_perl            => 'Test::CPAN::Health::Check::MinPerl',
 	pod_coverage        => 'Test::CPAN::Health::Check::PODCoverage',

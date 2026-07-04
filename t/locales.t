@@ -71,7 +71,10 @@ subtest 'GeoIP sanity: module has no country-based access control' => sub {
 # Helper: return true if the named locale is available on this system.
 sub _locale_available {
 	my ($locale) = @_;
-	my $out = qx{locale -a 2>/dev/null} // '';
+	# locale(1) may not exist on all CI systems (BSDs, Alpine, Windows).
+	# qx returns undef on exec failure; treat that as no locales available.
+	my $out = qx{locale -a 2>/dev/null};
+	return 0 unless defined $out && $? == 0;
 	return $out =~ /^\Q$locale\E$/m;
 }
 

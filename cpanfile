@@ -24,6 +24,7 @@ requires 'Pod::Checker';
 requires 'Pod::Coverage';
 requires 'Readonly', '2.00';
 requires 'Scalar::Util';
+requires 'Sub::Protected';
 requires 'Term::ANSIColor';
 requires 'YAML::Tiny';
 

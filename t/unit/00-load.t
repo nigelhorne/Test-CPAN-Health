@@ -18,9 +18,11 @@ my @modules = qw(
 	Test::CPAN::Health::Runner
 	Test::CPAN::Health::Check::AbandonedDeps
 	Test::CPAN::Health::Check::Benchmarks
+	Test::CPAN::Health::Check::Changelog
 	Test::CPAN::Health::Check::CIConfig
 	Test::CPAN::Health::Check::Complexity
 	Test::CPAN::Health::Check::CPANTesters
+	Test::CPAN::Health::Check::DeclaredDeps
 	Test::CPAN::Health::Check::Deprecations
 	Test::CPAN::Health::Check::DocQuality
 	Test::CPAN::Health::Check::DuplicateCode

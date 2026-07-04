@@ -1,12 +1,15 @@
+Changes
 cpanfile
 lib/Test/CPAN/Health.pm
 lib/Test/CPAN/Health/Cache.pm
 lib/Test/CPAN/Health/Check.pm
 lib/Test/CPAN/Health/Check/AbandonedDeps.pm
 lib/Test/CPAN/Health/Check/Benchmarks.pm
+lib/Test/CPAN/Health/Check/Changelog.pm
 lib/Test/CPAN/Health/Check/CIConfig.pm
 lib/Test/CPAN/Health/Check/Complexity.pm
 lib/Test/CPAN/Health/Check/CPANTesters.pm
+lib/Test/CPAN/Health/Check/DeclaredDeps.pm
 lib/Test/CPAN/Health/Check/Deprecations.pm
 lib/Test/CPAN/Health/Check/DocQuality.pm
 lib/Test/CPAN/Health/Check/DuplicateCode.pm
@@ -45,9 +48,11 @@ t/locales.t
 t/unit/00-load.t
 t/unit/abandoneddeps.t
 t/unit/benchmarks.t
+t/unit/changelog.t
 t/unit/ciconfig.t
 t/unit/complexity.t
 t/unit/cpantesters.t
+t/unit/declareddeps.t
 t/unit/deprecations.t
 t/unit/docquality.t
 t/unit/duplicatecode.t

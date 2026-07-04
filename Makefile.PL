@@ -33,6 +33,7 @@ WriteMakefile(
 		'Pod::Coverage'         => 0,
 		'Readonly'              => 2.00,
 		'Scalar::Util'          => 0,
+		'Sub::Protected'        => 0,
 		'Term::ANSIColor'       => 0,
 		'YAML::Tiny'            => 0,
 	}, TEST_REQUIRES => {
