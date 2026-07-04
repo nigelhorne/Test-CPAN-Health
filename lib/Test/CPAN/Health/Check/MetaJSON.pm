@@ -143,13 +143,8 @@ sub run {
 	croak 'dist must be a Test::CPAN::Health::Distribution'
 		unless ref($dist) && $dist->isa('Test::CPAN::Health::Distribution');
 
-	my $has_json   = defined $dist->file_path('META.json');
-	my $has_yml    = defined $dist->file_path('META.yml');
-	my $has_myjson = defined $dist->file_path('MYMETA.json');
-	my $has_myyml  = defined $dist->file_path('MYMETA.yml');
-	my $has_meta   = $has_json || $has_yml;
-	my $has_mymeta = $has_myjson || $has_myyml;
-	my $meta       = $dist->meta;
+	my $flags = _meta_presence_flags($dist);
+	my $meta  = $dist->meta;
 
 	unless ($meta) {
 		return $self->_result(
@@ -164,39 +159,24 @@ sub run {
 		);
 	}
 
-	my @authors  = $meta->author;
-	my @licenses = $meta->license;
-
-	my @missing;
-	push @missing, 'name'
-		unless defined $meta->name && length $meta->name;
-	push @missing, 'version'
-		unless defined $meta->version && length $meta->version;
-	push @missing, 'abstract'
-		if !defined $meta->abstract || !length $meta->abstract
-			|| $meta->abstract eq 'unknown';
-	push @missing, 'author'  unless @authors;
-	push @missing, 'license' unless @licenses;
+	my @missing = _missing_meta_fields($meta);
 
 	if (@missing) {
-		my $score = $has_json  ? $SCORE_JSON_INCOMPLETE
-		          : $has_yml   ? $SCORE_YML_INCOMPLETE
-		          :              $SCORE_MYMETA_INCOMPLETE;
 		return $self->_result(
 			status  => 'warn',
-			score   => $score,
+			score   => _incomplete_meta_score($flags),
 			summary => sprintf('META file is missing required fields: %s', join(', ', @missing)),
 			details => [ map { "Add '$_' to META.json" } @missing ],
 			data    => {
 				name     => $self->name,
-				has_json => $has_json ? 1 : 0,
+				has_json => $flags->{json} ? 1 : 0,
 				missing  => \@missing,
 			},
 		);
 	}
 
-	if (!$has_meta && $has_mymeta) {
-		my $which = $has_myjson ? 'MYMETA.json' : 'MYMETA.yml';
+	if (!$flags->{meta} && $flags->{mymeta}) {
+		my $which = $flags->{myjson} ? 'MYMETA.json' : 'MYMETA.yml';
 		return $self->_result(
 			status  => 'warn',
 			score   => $SCORE_MYMETA_COMPLETE,
@@ -209,7 +189,7 @@ sub run {
 		);
 	}
 
-	unless ($has_json) {
+	unless ($flags->{json}) {
 		return $self->_result(
 			status  => 'warn',
 			score   => $SCORE_YML_COMPLETE,
@@ -225,6 +205,54 @@ sub run {
 		summary => 'META.json is present and contains all required fields',
 		data    => { name => $self->name, has_json => 1 },
 	);
+}
+
+# ---------------------------------------------------------------------------
+# Private helpers
+# ---------------------------------------------------------------------------
+
+## no critic (ProhibitUnusedPrivateSubroutines)
+sub _meta_presence_flags {
+	my ($dist) = @_;
+	my $has_json   = defined $dist->file_path('META.json');
+	my $has_yml    = defined $dist->file_path('META.yml');
+	my $has_myjson = defined $dist->file_path('MYMETA.json');
+	my $has_myyml  = defined $dist->file_path('MYMETA.yml');
+	return {
+		json   => $has_json,
+		yml    => $has_yml,
+		myjson => $has_myjson,
+		myyml  => $has_myyml,
+		meta   => $has_json || $has_yml,
+		mymeta => $has_myjson || $has_myyml,
+	};
+}
+
+## no critic (ProhibitUnusedPrivateSubroutines)
+sub _missing_meta_fields {
+	my ($meta) = @_;
+	my @authors  = $meta->author;
+	my @licenses = $meta->license;
+	my @missing;
+	push @missing, 'name'
+		unless defined $meta->name && length $meta->name;
+	push @missing, 'version'
+		unless defined $meta->version && length $meta->version;
+	push @missing, 'abstract'
+		if !defined $meta->abstract
+			|| !length $meta->abstract
+			|| $meta->abstract eq 'unknown';
+	push @missing, 'author'  unless @authors;
+	push @missing, 'license' unless @licenses;
+	return @missing;
+}
+
+## no critic (ProhibitUnusedPrivateSubroutines)
+sub _incomplete_meta_score {
+	my ($flags) = @_;
+	return $flags->{json} ? $SCORE_JSON_INCOMPLETE
+	     : $flags->{yml}  ? $SCORE_YML_INCOMPLETE
+	     :                  $SCORE_MYMETA_INCOMPLETE;
 }
 
 =head1 AUTHOR

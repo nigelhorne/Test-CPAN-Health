@@ -66,6 +66,25 @@ sub description { return 'Checks for dependencies that appear to be unmaintained
 sub weight      { return 5                                                          }
 sub category    { return 'security'                                                 }
 
+=head2 new
+
+Construct an AbandonedDeps check.  Accepts all base-class parameters plus
+an optional C<ignore> arrayref of module names to exclude from the check.
+
+=cut
+
+sub new {
+	my ($class, %args) = @_;
+
+	my @ignore = @{ delete $args{ignore} // [] };
+
+	my $self = $class->SUPER::new(%args);
+
+	$self->{_ignore} = { map { $_ => 1 } @ignore };
+
+	return $self;
+}
+
 =head2 run
 
 =head3 PURPOSE
@@ -133,7 +152,7 @@ sub run {
 	my $meta = $dist->meta;
 	return $self->_skip('No META file found') unless $meta;
 
-	my @checkable = _collect_checkable($meta);
+	my @checkable = _collect_checkable($meta, $self->{_ignore});
 	return $self->_skip('No checkable runtime dependencies found')
 		unless @checkable;
 
@@ -180,7 +199,9 @@ sub run {
 }
 
 sub _collect_checkable {
-	my ($meta) = @_;
+	my ($meta, $ignore_ref) = @_;
+
+	$ignore_ref //= {};
 
 	my $prereqs      = $meta->effective_prereqs;
 	my $runtime      = $prereqs->requirements_for('runtime', 'requires');
@@ -191,6 +212,7 @@ sub _collect_checkable {
 	for my $mod (sort keys %deps) {
 		next if $mod eq 'perl';
 		next if $mod =~ / ^ [a-z] /x;    # pragmas are lowercase
+		next if $ignore_ref->{$mod};
 		next if $use_corelist && Module::CoreList->first_release($mod);
 		push @checkable, $mod;
 	}
@@ -232,7 +254,7 @@ sub _iso8601_to_epoch {
 }
 
 sub _http_get {
-	my $url = $_[0];
+	my ($url) = @_;
 
 	my $ua  = HTTP::Tiny->new(timeout => $HTTP_TIMEOUT);
 	my $res = $ua->get($url, { headers => { 'Accept' => 'application/json' } });

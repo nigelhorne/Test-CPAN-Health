@@ -36,95 +36,184 @@ my %opts = (
 );
 
 GetOptions(
-	'format|f=s'            => \$opts{format},
-	'check=s'               => \$opts{check},       # comma-separated check ids to run
-	'skip=s'                => \$opts{skip},        # comma-separated check ids to skip
-	'no-network|no_network' => \$opts{no_network},  # disable all network-dependent checks
-	'no-cover|no_cover'     => \$opts{no_cover},    # disable Devel::Cover (slow)
-	'severity=i'            => \$opts{severity},    # Perl::Critic severity threshold
-	'min-score|min_score=i' => \$opts{min_score},   # fail exit if score < N
-	'cache-dir|cache_dir=s' => \$opts{cache_dir},   # override ~/.cache/cpan-health
-	'output|o=s'            => \$opts{output},      # write report to file instead of STDOUT
-	'quiet|q'               => \$opts{quiet},       # suppress banners and informational lines
-	'help|h'                => sub { pod2usage(-verbose => 1, -exitval => 0) },
-	'man'                   => sub { pod2usage(-verbose => 2, -exitval => 0) },
-	'version|V'             => sub { print "cpan-health $VERSION\n"; exit 0 },
+	'format|f=s'                    => \$opts{format},
+	'check=s'                       => \$opts{check},
+	'skip=s'                        => \$opts{skip},
+	'no-network|no_network'         => \$opts{no_network},
+	'no-cover|no_cover'             => \$opts{no_cover},
+	'severity=i'                    => \$opts{severity},
+	'min-score|min_score=i'         => \$opts{min_score},
+	'cache-dir|cache_dir=s'         => \$opts{cache_dir},
+	'output|o=s'                    => \$opts{output},
+	'quiet|q'                       => \$opts{quiet},
+	'badge'                         => \$opts{badge},
+	'github-annotations'            => \$opts{github_annotations},
+	'list-checks'                   => \$opts{list_checks},
+	'history'                       => \$opts{history},
+	'ignore-abandoned|ignore_abandoned=s' => \$opts{ignore_abandoned},
+	'help|h'                        => sub { pod2usage(-verbose => 1, -exitval => 0) },
+	'man'                           => sub { pod2usage(-verbose => 2, -exitval => 0) },
+	'version|V'                     => sub { print "cpan-health $VERSION\n"; exit 0 },
 ) or pod2usage(-verbose => 0, -exitval => 2);
 
 # Remaining positional argument is the target; default to the current directory.
 my $target = shift @ARGV // '.';
 
 # Reject unknown format values before doing any real work.
-my %VALID_FORMATS = map { $_ => 1 } qw(terminal json html tap);
+my %VALID_FORMATS = map { $_ => 1 } qw(terminal json html tap markdown);
 unless ($VALID_FORMATS{ lc $opts{format} }) {
 	croak "Unknown --format '$opts{format}'. Valid formats: "
 		. join(', ', sort keys %VALID_FORMATS) . "\n";
 }
 
 # ---------------------------------------------------------------------------
+# Load the main module lazily so --help and --version are instantaneous.
+# ---------------------------------------------------------------------------
+require Test::CPAN::Health;
+
+# ---------------------------------------------------------------------------
+# --list-checks: print all available check metadata and exit.
+# ---------------------------------------------------------------------------
+if ($opts{list_checks}) {
+	my $checks = Test::CPAN::Health->list_checks;
+	printf "%-22s %-6s %-12s %s\n", 'ID', 'WEIGHT', 'CATEGORY', 'NAME';
+	printf "%s\n", '-' x 70;
+	for my $c (@{$checks}) {
+		printf "%-22s %-6s %-12s %s\n",
+			$c->{id}, $c->{weight}, $c->{category}, $c->{name};
+	}
+	exit 0;
+}
+
+# ---------------------------------------------------------------------------
+# --history: show score trend for the target distribution and exit.
+# ---------------------------------------------------------------------------
+if ($opts{history}) {
+	require Test::CPAN::Health::Cache;
+	my $cache = Test::CPAN::Health::Cache->new(
+		$opts{cache_dir} ? (cache_dir => $opts{cache_dir}) : (),
+	);
+	my $rows = $cache->score_history($target, 20);
+	if (!@{$rows}) {
+		print "No score history found for '$target'.\n";
+		exit 0;
+	}
+	printf "Score history for %s:\n", $target;
+	for my $row (@{$rows}) {
+		printf "  %s  v%-10s  %3d/100\n",
+			scalar localtime($row->{recorded}),
+			$row->{version} // '?',
+			$row->{score};
+	}
+	exit 0;
+}
+
+# ---------------------------------------------------------------------------
 # Classify the target and run the health analyser
 # ---------------------------------------------------------------------------
 
-# Load the main module lazily so --help and --version are instantaneous.
-require Test::CPAN::Health;
+_print_banner(\%opts, $target);
 
-# Show which target is being checked, unless quiet mode or a machine-readable format.
-if (lc($opts{format}) eq 'terminal' && !$opts{quiet}) {
-	printf "Checking %s ...\n\n",
-		(-e $target ? File::Spec->rel2abs($target) : $target);
-}
-
-# Classify target: an existing filesystem entry is a path; a name containing
-# '::' is a Perl module; anything else is treated as a CPAN dist name.
-my %target_arg;
-if (-e $target) {
-	$target_arg{path} = $target;
-} elsif ($target =~ / :: /x) {
-	$target_arg{module} = $target;
-} else {
-	$target_arg{dist} = $target;
-}
-
-# Build the analyser from parsed options.
-my $health = Test::CPAN::Health->new(
-	%target_arg,
-	format     => lc $opts{format},
-	no_network => $opts{no_network} ? 1 : 0,
-	no_cover   => $opts{no_cover}   ? 1 : 0,
-	severity   => $opts{severity},
-	min_score  => $opts{min_score},
-	$opts{cache_dir} ? (cache_dir => $opts{cache_dir})                 : (),
-	$opts{check}     ? (checks    => [split / \s* , \s* /x, $opts{check}])  : (),
-	$opts{skip}      ? (skip      => [split / \s* , \s* /x, $opts{skip}])   : (),
-);
-
-# Run all enabled checks and render the report.
+my $health   = _build_health(\%opts, $target);
 my $report   = $health->analyse;
 my $rendered = $health->report_to($report);
 
-# ---------------------------------------------------------------------------
-# Write output
-# ---------------------------------------------------------------------------
-
-if ($opts{output}) {
-	# Write to a file when --output is specified.
-	open my $fh, '>', $opts{output};
-	print {$fh} $rendered;
-	close $fh;
-	if (lc($opts{format}) eq 'terminal' && !$opts{quiet}) {
-		printf "Report written to %s\n", $opts{output};
-	}
-} else {
-	print $rendered;
-	print "\n" unless $rendered =~ / \n \z /x;
-}
-
-# ---------------------------------------------------------------------------
-# Exit: non-zero when the score is below the requested --min-score threshold,
-# allowing CI pipelines to gate on distribution health.
-# ---------------------------------------------------------------------------
+_write_output(\%opts, $rendered);
+_emit_badge(\%opts, $report)             if $opts{badge};
+_emit_annotations(\%opts, $report)      if $opts{github_annotations};
+_record_history(\%opts, $health, $report, $target);
 
 exit($report->overall_score < $opts{min_score} ? 1 : 0);
+
+# ---------------------------------------------------------------------------
+# Helper subroutines
+# ---------------------------------------------------------------------------
+
+sub _print_banner {
+	my ($opts_ref, $tgt) = @_;
+	return if lc($opts_ref->{format}) ne 'terminal';
+	return if $opts_ref->{quiet};
+	printf "Checking %s ...\n\n", (-e $tgt ? File::Spec->rel2abs($tgt) : $tgt);
+	return;
+}
+
+sub _build_health {
+	my ($opts_ref, $tgt) = @_;
+	my %tgt_arg;
+	if (-e $tgt) {
+		$tgt_arg{path} = $tgt;
+	} elsif ($tgt =~ / :: /x) {
+		$tgt_arg{module} = $tgt;
+	} else {
+		$tgt_arg{dist} = $tgt;
+	}
+	return Test::CPAN::Health->new(
+		%tgt_arg,
+		format     => lc $opts_ref->{format},
+		no_network => $opts_ref->{no_network} ? 1 : 0,
+		no_cover   => $opts_ref->{no_cover}   ? 1 : 0,
+		severity   => $opts_ref->{severity},
+		min_score  => $opts_ref->{min_score},
+		$opts_ref->{cache_dir}        ? (cache_dir        => $opts_ref->{cache_dir})                              : (),
+		$opts_ref->{check}            ? (checks           => [split / \s* , \s* /x, $opts_ref->{check}])          : (),
+		$opts_ref->{skip}             ? (skip             => [split / \s* , \s* /x, $opts_ref->{skip}])           : (),
+		$opts_ref->{ignore_abandoned} ? (ignore_abandoned => [split / \s* , \s* /x, $opts_ref->{ignore_abandoned}]) : (),
+	);
+}
+
+sub _write_output {
+	my ($opts_ref, $output_text) = @_;
+	if ($opts_ref->{output}) {
+		open my $fh, '>', $opts_ref->{output};
+		print {$fh} $output_text;
+		close $fh;
+		if (lc($opts_ref->{format}) eq 'terminal' && !$opts_ref->{quiet}) {
+			printf "Report written to %s\n", $opts_ref->{output};
+		}
+	} else {
+		print $output_text;
+		print "\n" unless $output_text =~ / \n \z /x;
+	}
+	return;
+}
+
+sub _emit_badge {
+	my ($opts_ref, $rpt) = @_;
+	my $score = $rpt->overall_score;
+	my $color = $score >= 90 ? 'brightgreen' : $score >= 70 ? 'yellow' : 'red';
+	printf "Badge: https://img.shields.io/badge/cpan--health-%d%%2F100-%s?style=flat-square\n",
+		$score, $color;
+	return;
+}
+
+sub _emit_annotations {
+	my ($opts_ref, $rpt) = @_;
+	for my $result (@{ $rpt->results }) {
+		my $status = $result->status;
+		next if $status eq 'pass' || $status eq 'skip';
+		my $level   = ($status eq 'fail' || $status eq 'error') ? 'error' : 'warning';
+		my $name    = $result->data->{name} // $result->check_id;
+		my $summary = $result->summary;
+		$summary =~ s/ :: / /gx;
+		printf "::%s title=cpan-health %s::%s\n", $level, $name, $summary;
+	}
+	return;
+}
+
+sub _record_history {
+	my ($opts_ref, $h, $rpt, $tgt) = @_;
+	require Test::CPAN::Health::Cache;
+	my $cache = Test::CPAN::Health::Cache->new(
+		$opts_ref->{cache_dir} ? (cache_dir => $opts_ref->{cache_dir}) : (),
+	);
+	my $dist_obj = $h->distribution;
+	if ($dist_obj) {
+		my $dist_name = $dist_obj->name    // $tgt;
+		my $version   = $dist_obj->version // '?';
+		$cache->record_history($dist_name, $version, $rpt->overall_score);
+	}
+	return;
+}
 
 __END__
 
@@ -144,19 +233,24 @@ cpan-health - Analyse a CPAN distribution and report a weighted health score
   C<LWP-UserAgent>, or a Perl module name such as C<LWP::UserAgent>.
 
   Options:
-    -f, --format FORMAT    Output format: terminal (default), json, html, tap
-        --check NAMES      Run only the named checks (comma-separated check ids)
-        --skip  NAMES      Skip the named checks (comma-separated check ids)
-        --no-network       Disable all network-dependent checks
-        --no-cover         Disable Devel::Cover (the test-coverage check is slow)
-        --severity N       Perl::Critic severity level 1-5 (default: 3)
-        --min-score N      Exit 1 if overall score is below N (default: 0)
-        --cache-dir DIR    Override the default cache directory
-    -o, --output FILE      Write the report to FILE instead of STDOUT
-    -q, --quiet            Suppress banners and informational messages
-    -h, --help             Show this help
-        --man              Show the full manual page
-    -V, --version          Print the version number and exit
+    -f, --format FORMAT         Output format: terminal (default), json, html, tap, markdown
+        --check NAMES           Run only the named checks (comma-separated check ids)
+        --skip  NAMES           Skip the named checks (comma-separated check ids)
+        --no-network            Disable all network-dependent checks
+        --no-cover              Disable Devel::Cover (the test-coverage check is slow)
+        --severity N            Perl::Critic severity level 1-5 (default: 3)
+        --min-score N           Exit 1 if overall score is below N (default: 0)
+        --cache-dir DIR         Override the default cache directory
+    -o, --output FILE           Write the report to FILE instead of STDOUT
+    -q, --quiet                 Suppress banners and informational messages
+        --list-checks           Print all available checks and exit
+        --history               Show score history for TARGET and exit
+        --badge                 Print a shields.io badge URL after the report
+        --github-annotations    Emit GitHub Actions annotation lines (::error/::warning)
+        --ignore-abandoned MOD  Comma-separated modules to exclude from abandoned-deps check
+    -h, --help                  Show this help
+        --man                   Show the full manual page
+    -V, --version               Print the version number and exit
 
 =head1 DESCRIPTION
 

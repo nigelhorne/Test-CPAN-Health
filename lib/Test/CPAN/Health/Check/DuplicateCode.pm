@@ -156,16 +156,7 @@ sub run {
 	my $total_chunks = 0;
 
 	for my $file (@files) {
-		my @code_lines = _code_lines($file);
-		next if @code_lines < $CHUNK_SIZE;
-
-		my %seen_in_file;    # de-duplicate within the same file
-		for my $i (0 .. $#code_lines - $CHUNK_SIZE + 1) {
-			my $key = join("\x00", @code_lines[$i .. $i + $CHUNK_SIZE - 1]);
-			next if $seen_in_file{$key}++;    # only count each chunk once per file
-			$chunk_files{$key}{$file} = 1;
-			$total_chunks++;
-		}
+		$total_chunks += _index_file_chunks($file, \%chunk_files);
 	}
 
 	unless ($total_chunks) {
@@ -212,7 +203,26 @@ sub run {
 # Private helpers
 # ---------------------------------------------------------------------------
 
-# Return a list of normalised, non-blank, non-comment, non-POD code lines.
+# Add all CHUNK_SIZE-line windows from $file into %$chunk_files.
+# Returns the count of windows added.
+sub _index_file_chunks {
+	my ($file, $chunk_files) = @_;
+
+	my @code_lines = _code_lines($file);
+	return 0 if @code_lines < $CHUNK_SIZE;
+
+	my %seen;
+	my $added = 0;
+	for my $i (0 .. $#code_lines - $CHUNK_SIZE + 1) {
+		my $key = join("\x00", @code_lines[$i .. $i + $CHUNK_SIZE - 1]);
+		next if $seen{$key}++;
+		$chunk_files->{$key}{$file} = 1;
+		$added++;
+	}
+	return $added;
+}
+
+# Return normalised, non-blank, non-comment, non-POD code lines from $file.
 sub _code_lines {
 	my ($file) = @_;
 
@@ -230,19 +240,24 @@ sub _code_lines {
 			next;
 		}
 		next if $in_pod;
-
-		# Normalise whitespace.
-		$line =~ s/ ^ \s+ | \s+ $ //gx;
-		$line =~ s/ \s+ / /gx;
-
-		next unless length $line;
-		next if $line =~ / ^ [#] /x;        # pure comment
-		next if $line eq '1;';               # common file-end marker
-		next if $line =~ / ^ use \s+ (?:strict|warnings|autodie|utf8|parent|base) \b /x;
-
-		push @lines, $line;
+		my $norm = _normalise_line($line);
+		push @lines, $norm if defined $norm;
 	}
 	return @lines;
+}
+
+# Normalise one line; return undef if it should be excluded.
+sub _normalise_line {
+	my ($line) = @_;
+
+	$line =~ s/ ^ \s+ | \s+ $ //gx;
+	$line =~ s/ \s+ / /gx;
+
+	return unless length $line;
+	return if $line =~ / ^ [#] /x;
+	return if $line eq '1;';
+	return if $line =~ / ^ use \s+ (?:strict|warnings|autodie|utf8|parent|base) \b /x;
+	return $line;
 }
 
 =head1 AUTHOR

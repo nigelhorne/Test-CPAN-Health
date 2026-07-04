@@ -163,36 +163,27 @@ sub run {
 	return $self->_skip('Distribution not found on MetaCPAN') unless @$hits;
 
 	my $release = $hits->[0]{_source} // {};
-	my $tests   = $release->{tests}   // {};
-
-	my $n_pass    = $tests->{pass}    // 0;
-	my $n_fail    = $tests->{fail}    // 0;
-	my $n_na      = $tests->{na}      // 0;
-	my $n_unknown = $tests->{unknown} // 0;
-	my $total     = $n_pass + $n_fail;
+	my $ver     = $release->{version} // '?';
+	my ($n_pass, $n_fail, $n_na, $n_unknown) = _parse_testers_counts($release->{tests});
+	my $total   = $n_pass + $n_fail;
 
 	return $self->_skip(
-		sprintf('No CPAN Testers data yet for %s-%s',
-			$dist_slug, $release->{version} // '?')
+		"No CPAN Testers data yet for $dist_slug-$ver"
 	) unless $total;
 
 	my $score  = int($n_pass / $total * 100);
 	my $status = $score >= $SCORE_PASS ? 'pass'
 	           : $score >= $SCORE_WARN ? 'warn'
 	           :                         'fail';
+	my @details = $n_fail > 0
+		? ( "CPAN Testers reports $n_fail failure(s) -- see https://www.cpantesters.org/" )
+		: ();
 
 	return $self->_result(
 		status  => $status,
 		score   => $score,
-		summary => sprintf(
-			'CPAN Testers: %d pass, %d fail (%d%% pass rate) for v%s',
-			$n_pass, $n_fail, $score, $release->{version} // '?',
-		),
-		details => (
-			$n_fail > 0
-				? [ "CPAN Testers reports $n_fail failure(s) -- see https://www.cpantesters.org/" ]
-				: []
-		),
+		summary => "CPAN Testers: $n_pass pass, $n_fail fail ($score% pass rate) for v$ver",
+		details => \@details,
 		data    => {
 			name      => $self->name,
 			pass      => $n_pass,
@@ -202,6 +193,17 @@ sub run {
 			pass_rate => $score,
 			version   => $release->{version},
 		},
+	);
+}
+
+sub _parse_testers_counts {
+	my ($tests) = @_;
+	$tests //= {};
+	return (
+		$tests->{pass}    // 0,
+		$tests->{fail}    // 0,
+		$tests->{na}      // 0,
+		$tests->{unknown} // 0,
 	);
 }
 

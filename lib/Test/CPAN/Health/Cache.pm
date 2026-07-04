@@ -164,7 +164,7 @@ sub get {
 	return $data;
 }
 
-=head2 set
+=head2 store
 
 =head3 PURPOSE
 
@@ -236,6 +236,128 @@ sub store {
 	};
 
 	return $self;
+}
+
+=head2 record_history
+
+=head3 PURPOSE
+
+Record an overall health score for a distribution version.  Used by the
+Runner to build a score-over-time trend.
+
+=head3 API SPECIFICATION
+
+=head4 INPUT
+
+  dist     Scalar  required  Distribution name (e.g. 'LWP-UserAgent')
+  version  Scalar  required  Version string
+  score    Scalar  required  Integer score 0..100
+
+=head4 OUTPUT
+
+Returns C<$self>.
+
+=head3 MESSAGES
+
+  Code  | Severity | Message                            | Resolution
+  ------+----------+------------------------------------+---------------------
+  CAC04 | WARNING  | History write error: {msg}         | Check DB permissions
+
+=head3 FORMAL SPECIFICATION
+
+  Post: score_history table gains one row (dist, version, score, time())
+
+=head3 SIDE EFFECTS
+
+Writes to the SQLite database.
+
+=head3 USAGE EXAMPLE
+
+    $cache->record_history('LWP-UserAgent', '6.77', 95);
+
+=cut
+
+sub record_history {
+	my ($self, $dist, $version, $score) = @_;
+
+	croak 'dist is required'    unless defined $dist    && length $dist;
+	croak 'version is required' unless defined $version && length $version;
+	croak 'score is required'   unless defined $score;
+
+	eval {
+		$self->_dbh->do(
+			'INSERT INTO score_history (dist, version, score, recorded) VALUES (?, ?, ?, ?)',
+			undef, $dist, $version, $score + 0, time,
+		);
+		1;
+	} or do {
+		carp "History write error: $@";
+	};
+
+	return $self;
+}
+
+=head2 score_history
+
+=head3 PURPOSE
+
+Retrieve recent score history for a distribution in reverse-chronological
+order.
+
+=head3 API SPECIFICATION
+
+=head4 INPUT
+
+  dist   Scalar   required  Distribution name
+  limit  Integer  optional  Maximum rows to return (default: 10)
+
+=head4 OUTPUT
+
+Arrayref of hashrefs with keys C<dist>, C<version>, C<score>, C<recorded>
+(Unix timestamp).  Most-recent first.
+
+=head3 MESSAGES
+
+  Code  | Severity | Message                            | Resolution
+  ------+----------+------------------------------------+---------------------
+  CAC05 | WARNING  | History read error: {msg}          | Check DB permissions
+
+=head3 FORMAL SPECIFICATION
+
+  Post: result is an arrayref of at most limit rows for dist, ordered by recorded DESC
+
+=head3 SIDE EFFECTS
+
+Reads from the SQLite database.
+
+=head3 USAGE EXAMPLE
+
+    for my $row (@{ $cache->score_history('LWP-UserAgent') }) {
+        printf "%s: %d\n", scalar localtime($row->{recorded}), $row->{score};
+    }
+
+=cut
+
+sub score_history {
+	my ($self, $dist, $limit) = @_;
+
+	croak 'dist is required' unless defined $dist && length $dist;
+	$limit //= 10;
+
+	my $rows = eval {
+		$self->_dbh->selectall_arrayref(
+			'SELECT dist, version, score, recorded FROM score_history'
+			. ' WHERE dist = ? ORDER BY recorded DESC LIMIT ?',
+			{ Slice => {} }, $dist, $limit,
+		);
+	};
+
+	if ($@) {
+		carp "History read error: $@";
+		return [];
+	}
+
+	return $rows // [];
 }
 
 =head2 purge
@@ -342,6 +464,19 @@ CREATE TABLE IF NOT EXISTS cache (
 SQL
 
 	$self->{_dbh}->do('CREATE INDEX IF NOT EXISTS idx_cache_expires ON cache (expires)');
+
+	$self->{_dbh}->do(<<'SQL');
+CREATE TABLE IF NOT EXISTS score_history (
+    dist      TEXT    NOT NULL,
+    version   TEXT    NOT NULL,
+    score     INTEGER NOT NULL,
+    recorded  INTEGER NOT NULL
+)
+SQL
+
+	$self->{_dbh}->do(
+		'CREATE INDEX IF NOT EXISTS idx_history_dist ON score_history (dist, recorded)'
+	);
 
 	return;
 }

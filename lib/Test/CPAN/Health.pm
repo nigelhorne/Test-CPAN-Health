@@ -47,9 +47,11 @@ Readonly::Array my @DEFAULT_CHECKS => qw(
 	Test::CPAN::Health::Check::SecurityAdvisories
 	Test::CPAN::Health::Check::CPANTesters
 	Test::CPAN::Health::Check::ReverseDeps
+	Test::CPAN::Health::Check::VersionSync
+	Test::CPAN::Health::Check::ReadmeSync
 );
 
-Readonly::Hash my %VALID_FORMATS => map { $_ => 1 } qw(terminal json html tap);
+Readonly::Hash my %VALID_FORMATS => map { $_ => 1 } qw(terminal json html tap markdown);
 
 # Maps the short check id (as returned by ->id) to the full class name.
 # Used to normalise --check and --skip CLI arguments that use short ids.
@@ -76,6 +78,8 @@ Readonly::Hash my %CHECK_CLASS_FOR => (
 	security_advisories => 'Test::CPAN::Health::Check::SecurityAdvisories',
 	cpan_testers        => 'Test::CPAN::Health::Check::CPANTesters',
 	reverse_deps        => 'Test::CPAN::Health::Check::ReverseDeps',
+	version_sync        => 'Test::CPAN::Health::Check::VersionSync',
+	readme_sync         => 'Test::CPAN::Health::Check::ReadmeSync',
 );
 
 =head1 NAME
@@ -84,7 +88,7 @@ Test::CPAN::Health - Analyse a CPAN distribution and produce a comprehensive hea
 
 =head1 VERSION
 
-Version 0.01
+Version 0.1.0
 
 =head1 SYNOPSIS
 
@@ -184,7 +188,7 @@ C<PPI> and may produce false positives on generated or data-heavy code.
 =cut
 
 sub new {
-	my $class = shift;
+	my ($class, @args) = @_;
 	my $args = validate_strict(
 		schema => {
 			distribution => { type => 'object', isa => 'Test::CPAN::Health::Distribution', optional => 1 },
@@ -197,10 +201,11 @@ sub new {
 			no_network   => { type => 'scalar',   optional => 1 },
 			no_cover     => { type => 'scalar',   optional => 1 },
 			severity     => { type => 'integer',  min => 1, max => 5, optional => 1 },
-			min_score    => { type => 'integer',  min => 0, max => 100, optional => 1 },
-			cache_dir    => { type => 'string',   optional => 1 },
+			min_score         => { type => 'integer',  min => 0, max => 100, optional => 1 },
+			cache_dir         => { type => 'string',   optional => 1 },
+			ignore_abandoned  => { type => 'arrayref', optional => 1 },
 		},
-		input => Params::Get::get_params(undef, \@_) || {}
+		input => Params::Get::get_params(undef, \@args) || {}
 	);
 
 	croak 'One of path, module, dist, or distribution is required'
@@ -227,9 +232,10 @@ sub new {
 		                       @{ $args->{checks} // [@DEFAULT_CHECKS] } ],
 		_skip         => { map { ($CHECK_CLASS_FOR{$_} // $_) => 1 }
 		                       @{ $args->{skip} // [] } },
-		_path         => $args->{path},
-		_module       => $args->{module},
-		_dist         => $args->{dist},
+		_path              => $args->{path},
+		_module            => $args->{module},
+		_dist              => $args->{dist},
+		_ignore_abandoned  => $args->{ignore_abandoned} // [],
 	}, $class;
 }
 
@@ -288,6 +294,66 @@ sub analyse {
 	$self->_init_reporter      unless $self->{_reporter};
 
 	return $self->{_runner}->run($self->{_distribution});
+}
+
+=head2 list_checks
+
+=head3 PURPOSE
+
+Return a list of all default check metadata (id, name, weight, category,
+description) without running any check.  Suitable for C<--list-checks> output.
+
+=head3 API SPECIFICATION
+
+=head4 INPUT
+
+None (class method).
+
+=head4 OUTPUT
+
+Arrayref of hashrefs; each has keys C<id>, C<name>, C<weight>, C<category>,
+C<description>.  Ordered as they would execute.
+
+=head3 MESSAGES
+
+  Code  | Severity | Message                             | Resolution
+  ------+----------+-------------------------------------+---------------------
+        |          |                                     |
+
+=head3 FORMAL SPECIFICATION
+
+  Post: result is an arrayref of length = #DEFAULT_CHECKS (skipping unloadable)
+
+=head3 SIDE EFFECTS
+
+Requires each check class (lazy load).
+
+=head3 USAGE EXAMPLE
+
+    my @checks = @{ Test::CPAN::Health->list_checks };
+    printf "%-20s %s\n", $_->{id}, $_->{name} for @checks;
+
+=cut
+
+sub list_checks {
+	my @result;
+	for my $class (@DEFAULT_CHECKS) {
+		my $ok = eval {
+			(my $file = "$class.pm") =~ s{ :: }{/}gx;
+			require $file;
+			1;
+		};
+		next unless $ok;
+		my $obj = $class->new;
+		push @result, {
+			id          => $obj->id,
+			name        => $obj->name,
+			weight      => $obj->weight,
+			category    => $obj->category,
+			description => $obj->description,
+		};
+	}
+	return \@result;
 }
 
 =head2 report_to
@@ -413,10 +479,17 @@ sub _init_runner {
 			next;
 		}
 
+		my %extra;
+		if ($check_class eq 'Test::CPAN::Health::Check::AbandonedDeps'
+				&& @{ $self->{_ignore_abandoned} }) {
+			$extra{ignore} = $self->{_ignore_abandoned};
+		}
+
 		push @checks, $check_class->new(
 			severity   => $self->{_severity},
 			no_network => $self->{_no_network},
 			no_cover   => $self->{_no_cover},
+			%extra,
 		);
 	}
 
@@ -436,6 +509,7 @@ sub _init_reporter {
 		json     => 'Test::CPAN::Health::Reporter::JSON',
 		html     => 'Test::CPAN::Health::Reporter::HTML',
 		tap      => 'Test::CPAN::Health::Reporter::TAP',
+		markdown => 'Test::CPAN::Health::Reporter::Markdown',
 	);
 
 	my $reporter_class = $REPORTER_MAP{ $self->{_format} }

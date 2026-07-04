@@ -185,8 +185,16 @@ sub run {
 	my @undeclared = sort grep {
 		!$declared{$_} && !_covered_by_namespace(\%declared, $_)
 	} keys %used;
-	my $n_bad      = scalar @undeclared;
-	my $n_total    = scalar keys %used;
+
+	return $self->_build_result(\%used, \@undeclared);
+}
+
+## no critic (ProhibitUnusedPrivateSubroutines)
+sub _build_result {
+	my ($self, $used_ref, $undeclared_ref) = @_;
+
+	my $n_bad   = scalar @{$undeclared_ref};
+	my $n_total = scalar keys %{$used_ref};
 
 	if ($n_bad == 0) {
 		my $dep_word = $n_total == 1 ? 'dependency is' : 'dependencies are';
@@ -206,12 +214,12 @@ sub run {
 		status  => $status,
 		score   => $score,
 		summary => "$n_bad undeclared runtime $noun found",
-		details => [ map { "Undeclared: $_" } @undeclared ],
+		details => [ map { "Undeclared: $_" } @{$undeclared_ref} ],
 		data    => {
 			name       => $self->name,
 			used       => $n_total,
 			undeclared => $n_bad,
-			modules    => \@undeclared,
+			modules    => $undeclared_ref,
 		},
 	);
 }

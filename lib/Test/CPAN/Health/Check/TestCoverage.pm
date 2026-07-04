@@ -166,6 +166,27 @@ sub run {
 	croak 'dist must be a Test::CPAN::Health::Distribution'
 		unless ref($dist) && $dist->isa('Test::CPAN::Health::Distribution');
 
+	my $skip = $self->_check_preconditions($dist);
+	return $skip if $skip;
+
+	my $cover_bin = _find_cover_bin();
+	return $self->_skip('cover binary not found') unless $cover_bin;
+
+	my $has_makefile_pl = $dist->file_path('Makefile.PL') ? 1 : 0;
+	my $has_build_pl    = $dist->file_path('Build.PL')    ? 1 : 0;
+
+	my ($output, $run_err, $tests_failed)
+		= _collect_coverage($dist, $has_makefile_pl, $has_build_pl, $cover_bin);
+
+	return $self->_error("Failed to run coverage check: $run_err") if $run_err;
+
+	return $self->_parse_and_score($output, $tests_failed);
+}
+
+## no critic (ProhibitUnusedPrivateSubroutines)
+sub _check_preconditions {
+	my ($self, $dist) = @_;
+
 	return $self->_skip('Skipped (--no-cover is set)') if $self->no_cover;
 
 	my $has_cover = eval { require Devel::Cover; 1 };
@@ -174,30 +195,31 @@ sub run {
 	my @t_files = @{ $dist->t_files };
 	return $self->_skip('No test files found under t/') unless @t_files;
 
-	my $has_makefile_pl = $dist->file_path('Makefile.PL') ? 1 : 0;
-	my $has_build_pl    = $dist->file_path('Build.PL')    ? 1 : 0;
-
-	unless ($has_makefile_pl || $has_build_pl) {
+	unless ($dist->file_path('Makefile.PL') || $dist->file_path('Build.PL')) {
 		return $self->_skip('No Makefile.PL or Build.PL found');
 	}
 
-	my $cover_bin = _find_cover_bin();
-	return $self->_skip('cover binary not found') unless $cover_bin;
+	return;
+}
 
-	my ($output, $run_err, $tests_failed)
-		= _collect_coverage($dist, $has_makefile_pl, $has_build_pl, $cover_bin);
-
-	return $self->_error("Failed to run coverage check: $run_err") if $run_err;
+## no critic (ProhibitUnusedPrivateSubroutines)
+sub _parse_and_score {
+	my ($self, $output, $tests_failed) = @_;
 
 	# Parse statement coverage from the Total row of the text report.
-	# Example: "Total    91.7   88.2   50.0  100.0   75.0  100.0   88.2"
+	# "Total  91.7   88.2   50.0  100.0   75.0  100.0   88.2" (spaces or tabs)
 	my $stmt_pct;
-	if (defined $output && $output =~ / ^ Total \s+ ([\d.]+) /mx) {
+	if (defined $output && $output =~ / ^ Total [\s\t]+ ([\d.]+) /mx) {
 		$stmt_pct = $1 + 0;
 	}
 
 	unless (defined $stmt_pct) {
-		return $self->_error('Could not parse statement coverage from cover output');
+		my $snippet = defined $output ? substr($output, 0, 300) : '(no output)';
+		$snippet =~ s/ \s+ / /gx;
+		return $self->_error(
+			"Could not parse statement coverage from cover output. "
+			. "First 300 chars: $snippet"
+		);
 	}
 
 	my $score  = int($stmt_pct);

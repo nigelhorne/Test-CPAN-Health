@@ -135,12 +135,24 @@ sub run {
 
 	my $dist_root = $dist->path;
 
+	my %parent_pod_cache;   # class => hashref-of-pod-names
+
 	for my $file (@pm_files) {
 		my $rel = File::Spec->abs2rel($file, $dist_root);
-		my ($pub_subs_ref, $pod_names_ref) = _parse_file($file);
+		my ($pub_subs_ref, $pod_names_ref, $parents_ref) = _parse_file($file);
+
+		# Build merged parent POD map (lazy, cached per class name).
+		my %inherited_pod;
+		for my $parent_class (@{$parents_ref}) {
+			unless (exists $parent_pod_cache{$parent_class}) {
+				$parent_pod_cache{$parent_class} = _pod_names_for_class($parent_class);
+			}
+			%inherited_pod = (%inherited_pod, %{ $parent_pod_cache{$parent_class} });
+		}
+
 		for my $sub_name (@{$pub_subs_ref}) {
 			$total_subs++;
-			if ($pod_names_ref->{$sub_name}) {
+			if ($pod_names_ref->{$sub_name} || $inherited_pod{$sub_name}) {
 				$covered_subs++;
 			} else {
 				push @undocumented, [ $rel, $sub_name ];
@@ -184,16 +196,18 @@ sub run {
 # ---------------------------------------------------------------------------
 
 # Parse a .pm file to identify public subs and POD-documented names.
-# Returns (arrayref-of-public-sub-names, hashref-of-pod-names).
+# Also detects 'use parent' so caller can resolve inherited documentation.
+# Returns (arrayref-of-public-sub-names, hashref-of-pod-names, arrayref-of-parent-classes).
 sub _parse_file {
 	my ($file) = @_;
 
-	open my $fh, '<', $file or return ([], {});
+	open my $fh, '<', $file or return ([], {}, []);
 	my @lines = <$fh>;
 	close $fh;
 
 	my @public_subs;
 	my %pod_names;
+	my @parents;
 	my $in_pod = 0;
 
 	for my $line (@lines) {
@@ -206,13 +220,46 @@ sub _parse_file {
 
 		if ($in_pod && $line =~ / ^ =head [234] \s+ (\w+) /x) {
 			$pod_names{$1}++;
-		} elsif (!$in_pod && $line =~ / ^ sub \s+ ([a-zA-Z] \w*) \b /x
-				&& !$EXEMPT_SUBS{$1} && $1 !~ / ^ _ /x) {
-			push @public_subs, $1;
+		} elsif (!$in_pod) {
+			if ($line =~ / ^ sub \s+ ([a-zA-Z] \w*) \b /x
+					&& !$EXEMPT_SUBS{$1} && $1 !~ / ^ _ /x) {
+				push @public_subs, $1;
+			} else {
+				push @parents, _extract_parents($line);
+			}
 		}
 	}
 
-	return (\@public_subs, \%pod_names);
+	return (\@public_subs, \%pod_names, \@parents);
+}
+
+# Extract parent class names from a 'use parent ...' line.
+sub _extract_parents {
+	my ($line) = @_;
+	return unless $line =~ / \b use \s+ parent \b (.*) /x;
+	my $rest = $1;
+	my @found;
+	push @found, ($rest =~ / ['"] ( [^'"]+ ) ['"] /gx);
+	push @found, ($rest =~ / qw [(\s]+ ( [^\s)'"]+ ) /gx);
+	return @found;
+}
+
+# Collect all POD-documented names from a class's .pm file by searching
+# the @INC path.  Returns a hashref (name => 1) or empty hashref on miss.
+sub _pod_names_for_class {
+	my ($class) = @_;
+
+	(my $rel = "$class.pm") =~ s{ :: }{/}gx;
+
+	for my $dir (@INC) {
+		next unless -d $dir;
+		my $candidate = File::Spec->catfile($dir, $rel);
+		if (-f $candidate) {
+			my (undef, $names) = _parse_file($candidate);
+			return $names;
+		}
+	}
+	return {};
 }
 
 =head1 AUTHOR

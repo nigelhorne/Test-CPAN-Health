@@ -157,9 +157,9 @@ sub run {
 	my @complex = grep { $_->{mccabe_complexity} > $COMPLEXITY_THRESHOLD } @all_subs;
 
 	my $score  = int((1 - @complex / @all_subs) * 100);
-	my $status = $score >= $SCORE_PASS ? 'pass'
-	           : $score >= $SCORE_WARN ? 'warn'
-	           :                         'fail';
+	my $status = @complex == 0          ? 'pass'
+	           : $score >= $SCORE_WARN  ? 'warn'
+	           :                          'fail';
 
 	my @details = map {
 		sprintf(

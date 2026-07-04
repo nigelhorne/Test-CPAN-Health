@@ -152,32 +152,10 @@ sub run {
 	my @issues;
 
 	for my $file (@pm_files) {
-		my $rel    = File::Spec->abs2rel($file, $dist->path);
-		my $errors = _count_pod_errors($file);
-		my %secs   = _pod_sections($file);
-		my $has_pod = %secs ? 1 : 0;
-
-		my $file_score;
-		if (!$has_pod && !$errors) {
-			$file_score = $SCORE_FILE_NOPOD;
-			push @issues, "$rel: no POD found";
-		} elsif ($errors) {
-			$file_score = $SCORE_FILE_ERRORS;
-			push @issues, sprintf('%s: %d POD error(s)', $rel, $errors);
-		} else {
-			my @missing_secs = grep { !$secs{$_} } @REQUIRED_SECTIONS;
-			push @missing_secs, 'LICENSE'
-				unless $secs{LICENSE} || $secs{LICENCE} || $secs{COPYRIGHT};
-
-			if (@missing_secs) {
-				$file_score = $SCORE_FILE_NOSEC;
-				push @issues, sprintf('%s: missing sections: %s', $rel, join(', ', @missing_secs));
-			} else {
-				$file_score = $SCORE_FILE_FULL;
-			}
-		}
-
+		my $rel = File::Spec->abs2rel($file, $dist->path);
+		my ($file_score, $issue) = _score_file($file, $rel);
 		$total_score += $file_score;
+		push @issues, $issue if defined $issue;
 	}
 
 	my $score  = int($total_score / scalar @pm_files);
@@ -206,6 +184,30 @@ sub run {
 # ---------------------------------------------------------------------------
 # Private helpers
 # ---------------------------------------------------------------------------
+
+# Score a single file; returns (score, issue_string_or_undef).
+sub _score_file {
+	my ($file, $rel) = @_;
+
+	my $errors  = _count_pod_errors($file);
+	my %secs    = _pod_sections($file);
+	my $has_pod = %secs ? 1 : 0;
+
+	if (!$has_pod && !$errors) {
+		return ($SCORE_FILE_NOPOD, "$rel: no POD found");
+	}
+	if ($errors) {
+		return ($SCORE_FILE_ERRORS, sprintf('%s: %d POD error(s)', $rel, $errors));
+	}
+
+	my @missing = grep { !$secs{$_} } @REQUIRED_SECTIONS;
+	push @missing, 'LICENSE' unless $secs{LICENSE} || $secs{LICENCE} || $secs{COPYRIGHT};
+
+	if (@missing) {
+		return ($SCORE_FILE_NOSEC, sprintf('%s: missing sections: %s', $rel, join(', ', @missing)));
+	}
+	return ($SCORE_FILE_FULL, undef);
+}
 
 # Run Pod::Checker on $file; return count of errors (warnings ignored).
 sub _count_pod_errors {

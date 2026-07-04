@@ -182,7 +182,7 @@ Non-empty scalar string; lowercase alphanumeric and underscores only.
 
 =cut
 
-sub id { my $self = $_[0]; croak ref($self) . ' must implement id()' }
+sub id { my ($self) = @_; croak ref($self) . ' must implement id()' }
 
 =head2 name
 

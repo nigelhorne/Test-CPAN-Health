@@ -181,17 +181,33 @@ sub run {
 		return $self->_result(
 			status  => 'pass',
 			score   => $SCORE_UNVERIFIED,
-			summary => sprintf(
-				'Minimum Perl %s declared (install Perl::MinimumVersion to verify against source)',
-				$declared,
-			),
+			summary => "Minimum Perl $declared declared "
+				. '(install Perl::MinimumVersion to verify against source)',
 			data => { name => $self->name, declared => $declared },
 		);
 	}
 
-	# Scan all source files and keep the highest detected minimum.
+	my $detected = _detect_minimum($dist->all_source_files);
+
+	unless (defined $detected) {
+		return $self->_result(
+			status  => 'pass',
+			score   => $SCORE_UNVERIFIED,
+			summary => "Minimum Perl $declared declared "
+				. '(no source files found to verify against)',
+			data => { name => $self->name, declared => $declared },
+		);
+	}
+
+	return _compare_versions($self, $declared, $detected);
+}
+
+## no critic (ProhibitUnusedPrivateSubroutines)
+sub _detect_minimum {
+	my ($files_ref) = @_;
+
 	my $detected;
-	for my $file (@{ $dist->all_source_files }) {
+	for my $file (@{$files_ref}) {
 		my $min;
 		my $ok = eval {
 			my $pmv = Perl::MinimumVersion->new($file);
@@ -205,34 +221,25 @@ sub run {
 		next unless defined $min;
 		$detected = $min if !defined $detected || $min > $detected;
 	}
+	return $detected;
+}
 
-	unless (defined $detected) {
-		return $self->_result(
-			status  => 'pass',
-			score   => $SCORE_UNVERIFIED,
-			summary => sprintf(
-				'Minimum Perl %s declared (no source files found to verify against)',
-				$declared,
-			),
-			data => { name => $self->name, declared => $declared },
-		);
-	}
+## no critic (ProhibitUnusedPrivateSubroutines)
+sub _compare_versions {
+	my ($self, $declared, $detected) = @_;
 
-	# Strip any version-range operator (">= 5.014") to get a bare version.
-	(my $declared_clean = $declared) =~ s/ ^ [><=!] =? \s* //x;
+	(my $clean = $declared) =~ s/ ^ [><=!] =? \s* //x;
 	require version;
-	my $declared_v = eval { version->parse($declared_clean) };
+	my $declared_v = eval { version->parse($clean) };
 
 	if (defined $declared_v && $declared_v < $detected) {
 		return $self->_result(
 			status  => 'warn',
 			score   => $SCORE_UNDER,
-			summary => sprintf(
-				'Declared minimum Perl %s is lower than detected minimum %s',
-				$declared, $detected->stringify,
-			),
+			summary => "Declared minimum Perl $declared is lower than detected minimum "
+				. $detected->stringify,
 			details => [
-				sprintf('Update META prereqs to require perl %s', $detected->stringify),
+				'Update META prereqs to require perl ' . $detected->stringify,
 				'Underdeclaring the minimum Perl version can cause installation failures',
 			],
 			data => {
@@ -246,10 +253,8 @@ sub run {
 	return $self->_result(
 		status  => 'pass',
 		score   => $SCORE_VERIFIED,
-		summary => sprintf(
-			'Minimum Perl %s declared; detected minimum from source is %s',
-			$declared, $detected->stringify,
-		),
+		summary => "Minimum Perl $declared declared; detected minimum from source is "
+			. $detected->stringify,
 		data => {
 			name     => $self->name,
 			declared => $declared,
