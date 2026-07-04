@@ -4,7 +4,7 @@ Test::CPAN::Health - Analyse a CPAN distribution and produce a comprehensive hea
 
 # VERSION
 
-Version 0.01
+Version 0.1.0
 
 # SYNOPSIS
 
@@ -138,6 +138,43 @@ May download the distribution from CPAN, run its test suite (if
 
     my $report = $health->analyse;
     print 'Score: ', $report->overall_score, "\n";
+
+## list\_checks
+
+### PURPOSE
+
+Return a list of all default check metadata (id, name, weight, category,
+description) without running any check.  Suitable for `--list-checks` output.
+
+### API SPECIFICATION
+
+#### INPUT
+
+None (class method).
+
+#### OUTPUT
+
+Arrayref of hashrefs; each has keys `id`, `name`, `weight`, `category`,
+`description`.  Ordered as they would execute.
+
+### MESSAGES
+
+    Code  | Severity | Message                             | Resolution
+    ------+----------+-------------------------------------+---------------------
+          |          |                                     |
+
+### FORMAL SPECIFICATION
+
+    Post: result is an arrayref of length = #DEFAULT_CHECKS (skipping unloadable)
+
+### SIDE EFFECTS
+
+Requires each check class (lazy load).
+
+### USAGE EXAMPLE
+
+    my @checks = @{ Test::CPAN::Health->list_checks };
+    printf "%-20s %s\n", $_->{id}, $_->{name} for @checks;
 
 ## report\_to
 

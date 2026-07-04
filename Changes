@@ -1,11 +1,4 @@
 Revision history for Test-CPAN-Health
 
-0.1.0
+0.1.0	Sat Jul  4 16:16:37 EDT 2026
   - Initial release on CPAN.
-  - 22 health checks covering packaging, quality, security, and CI categories.
-  - Four report formats: terminal (ANSI colour), JSON, HTML, and TAP.
-  - CLI script cpan-health with --format, --min-score, --skip, --check,
-    --no-network, --no-cover, --output, and --cache-dir options.
-  - SQLite result cache (~/.cache/cpan-health/) for expensive checks.
-  - Hard caps: SecurityAdvisories fail caps score at 60; CPANTesters fail
-    caps score at 75.

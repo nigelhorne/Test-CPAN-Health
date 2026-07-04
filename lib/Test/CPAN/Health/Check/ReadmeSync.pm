@@ -158,10 +158,11 @@ sub run {
 	}
 
 	my $dist_name = $dist->name // '';
-	(my $slug = $dist_name) =~ s/ :: /-/gx;
+	(my $hyphen_form  = $dist_name) =~ s/ :: /-/gx;
+	(my $module_form  = $dist_name) =~ s/ -  /::/gx;
 
-	my $mentions = ($slug && $content =~ / \Q$slug\E /xi)
-	            || ($dist_name && $content =~ / \Q$dist_name\E /xi);
+	my $mentions = ($hyphen_form && $content =~ / \Q$hyphen_form\E /xi)
+	            || ($module_form && $content =~ / \Q$module_form\E /xi);
 
 	unless ($mentions) {
 		return $self->_result(
@@ -169,7 +170,7 @@ sub run {
 			score   => $SCORE_NAME_MATCH,
 			summary => "README ($readme_name) does not mention the distribution name",
 			details => [
-				"Update $readme_name to mention '$dist_name'",
+				"Update $readme_name to mention '$hyphen_form' or '$module_form'",
 			],
 			data => { name => $self->name, readme => $readme_name, dist_name => $dist_name },
 		);

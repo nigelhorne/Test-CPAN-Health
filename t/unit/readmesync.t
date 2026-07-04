@@ -112,6 +112,21 @@ sub make_dist {
 }
 
 # ---------------------------------------------------------------------------
+# Module form (Test::CPAN::Health) accepted as well as dist form (Test-Dist)
+# ---------------------------------------------------------------------------
+
+{
+	# META name is 'Test-Dist'; module form is 'Test::Dist'
+	my $dist = make_dist(
+		readme_name    => 'README.md',
+		readme_content => "# Test::Dist\n\n" . ('A ' x 60) . "\n",
+		with_meta      => 1,
+	);
+	my $r = $check->run($dist);
+	is($r->status, 'pass', 'module-name form (::) accepted in README');
+}
+
+# ---------------------------------------------------------------------------
 # run() croaks on wrong argument type
 # ---------------------------------------------------------------------------
 
