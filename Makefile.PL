@@ -2,6 +2,15 @@ use strict;
 use warnings;
 use ExtUtils::MakeMaker 7.00;
 
+my $dist = {
+	COMPRESS => 'gzip -9f',	# Compress tarball using gzip
+	SUFFIX => 'gz',	# File suffix for tarball
+};
+
+if($^O eq 'darwin') {
+	$dist->{'TAR'} = 'gtar';
+}
+
 WriteMakefile(
 	NAME             => 'Test::CPAN::Health',
 	AUTHOR           => q{Nigel Horne <njh@nigelhorne.com>},
@@ -50,11 +59,11 @@ WriteMakefile(
 				type => 'git',
 				url  => 'https://github.com/nigelhorne/Test-CPAN-Health.git',
 				web  => 'https://github.com/nigelhorne/Test-CPAN-Health',
-			},
-			bugtracker => {
+			}, bugtracker => {
 				web => 'https://github.com/nigelhorne/Test-CPAN-Health/issues',
 			},
 		},
-	},
+	}, dist => $dist,
+	clean		=> { FILES => 'Test-CPAN-Health-*' },
 	test => { TESTS => 't/*.t t/*/*.t' },
 );
