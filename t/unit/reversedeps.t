@@ -61,12 +61,12 @@ throws_ok(
 }
 
 # ---------------------------------------------------------------------------
-# Live MetaCPAN call -- gated on TEST_NETWORK env var
+# Live MetaCPAN call -- skipped only when NO_NETWORK_TESTING is set
 # ---------------------------------------------------------------------------
 
 SKIP: {
-	skip 'Live network tests disabled (set TEST_NETWORK=1 to enable)', 6
-		unless $ENV{TEST_NETWORK};
+	skip q{Live network tests skipped (unset NO_NETWORK_TESTING to run)}, 6
+		if $ENV{NO_NETWORK_TESTING};
 
 	# LWP-UserAgent is a well-known dist with many reverse deps.
 	my $live_check = Test::CPAN::Health::Check::ReverseDeps->new;

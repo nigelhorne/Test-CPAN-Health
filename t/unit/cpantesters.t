@@ -85,12 +85,12 @@ throws_ok(
 }
 
 # ---------------------------------------------------------------------------
-# Live MetaCPAN call -- gated on TEST_NETWORK env var
+# Live MetaCPAN call -- skipped only when NO_NETWORK_TESTING is set
 # ---------------------------------------------------------------------------
 
 SKIP: {
-	skip 'Live network tests disabled (set TEST_NETWORK=1 to enable)', 8
-		unless $ENV{TEST_NETWORK};
+	skip q{Live network tests skipped (unset NO_NETWORK_TESTING to run)}, 8
+		if $ENV{NO_NETWORK_TESTING};
 
 	# LWP-UserAgent is a widely-used module with extensive CPAN Testers data.
 	my $live_check = Test::CPAN::Health::Check::CPANTesters->new;

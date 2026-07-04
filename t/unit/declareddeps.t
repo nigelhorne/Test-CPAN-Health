@@ -54,7 +54,8 @@ JSON
 sub add_pm {
 	my ($dist, $relpath, $content) = @_;
 	my $full = File::Spec->catfile($dist->path, 'lib', $relpath);
-	make_path((File::Spec->splitpath($full))[1]);
+	my ($vol, $dir) = File::Spec->splitpath($full);
+	make_path(File::Spec->catpath($vol, $dir, ''));
 	open my $fh, '>', $full or die $!;
 	print {$fh} $content;
 	close $fh;

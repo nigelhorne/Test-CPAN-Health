@@ -406,6 +406,7 @@ sub _skip : Protected {
 	return $self->_result(
 		status  => 'skip',
 		summary => $reason // 'Not applicable',
+		data    => { name => $self->name },
 	);
 }
 
@@ -421,6 +422,7 @@ sub _error : Protected {
 	return $self->_result(
 		status  => 'error',
 		summary => $message // 'Unknown error',
+		data    => { name => $self->name },
 	);
 }
 

@@ -119,12 +119,12 @@ JSON
 }
 
 # ---------------------------------------------------------------------------
-# Live MetaCPAN call -- gated on TEST_NETWORK env var
+# Live MetaCPAN call -- skipped only when NO_NETWORK_TESTING is set
 # ---------------------------------------------------------------------------
 
 SKIP: {
-	skip 'Live network tests disabled (set TEST_NETWORK=1 to enable)', 8
-		unless $ENV{TEST_NETWORK};
+	skip q{Live network tests skipped (unset NO_NETWORK_TESTING to run)}, 9
+		if $ENV{NO_NETWORK_TESTING};
 
 	my ($tmp, $dist) = make_dist();
 
@@ -155,7 +155,7 @@ JSON
 	isa_ok($result, 'Test::CPAN::Health::Result', 'live: returns a Result');
 
 	SKIP: {
-		skip 'live: result was skip/error: ' . $result->summary, 7
+		skip 'live: result was skip/error: ' . $result->summary, 8
 			unless grep { $result->status eq $_ } qw(pass warn fail);
 
 		ok(defined $result->score,                        'live: score defined');
@@ -165,6 +165,54 @@ JSON
 		ok($result->data->{total} > 0,                    'live: total deps > 0');
 		ok(ref($result->data->{stale_mods})   eq 'ARRAY', 'live: stale_mods is arrayref');
 		ok(ref($result->data->{current_mods}) eq 'ARRAY', 'live: current_mods is arrayref');
+		# Verify Both/All-N summary: 2 current deps → "Both", N≠2 → "All N"
+		if ($result->data->{stale} == 0) {
+			my $want = $result->data->{total} == 2 ? 'Both' : "All $result->data->{total}";
+			like($result->summary, qr/^\Q$want\E\b/, "live: all-current summary starts '$want'");
+		} else {
+			pass('live: stale deps present, Both/All-N summary test not applicable');
+		}
+	}
+}
+
+# ---------------------------------------------------------------------------
+# Live: single dep -- summary must say "All 1", never "Both"
+# ---------------------------------------------------------------------------
+
+SKIP: {
+	skip q{Live network tests skipped (unset NO_NETWORK_TESTING to run)}, 5
+		if $ENV{NO_NETWORK_TESTING};
+
+	my ($tmp2, $dist2) = make_dist();
+	write_file(File::Spec->catfile($tmp2, 'META.json'), <<'JSON');
+{
+   "name"      : "Test-Dist-One",
+   "version"   : "0.01",
+   "abstract"  : "Single dep test",
+   "author"    : ["Test Author <test\@example.com>"],
+   "license"   : ["perl_5"],
+   "meta-spec" : { "version" : "2", "url" : "http://search.cpan.org/perldoc?CPAN::Meta::Spec" },
+   "prereqs"   : { "runtime" : { "requires" : { "HTTP::Tiny" : "0.001" } } }
+}
+JSON
+
+	my $check1  = Test::CPAN::Health::Check::StaleDeps->new;
+	my $result1 = $check1->run($dist2);
+
+	isa_ok($result1, 'Test::CPAN::Health::Result', 'single-dep: returns a Result');
+
+	SKIP: {
+		skip 'single-dep: skip/error - ' . $result1->summary, 4
+			unless grep { $result1->status eq $_ } qw(pass warn fail);
+
+		is($result1->data->{total}, 1, 'single-dep: exactly 1 dep checked');
+		if ($result1->data->{stale} == 0) {
+			like($result1->summary, qr/^All 1\b/, 'single-dep: all-current uses "All 1"');
+		} else {
+			pass('single-dep: dep was stale, "All 1" assertion not applicable');
+		}
+		unlike($result1->summary, qr/^Both\b/, 'single-dep: 1 dep never produces "Both"');
+		ok(defined $result1->score, 'single-dep: score is defined');
 	}
 }
 

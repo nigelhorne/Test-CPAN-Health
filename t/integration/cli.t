@@ -156,12 +156,12 @@ my (undef, $bad_fmt_rc) = run_cli('--format=badformat', $root);
 isnt($bad_fmt_rc >> 8, 0, 'invalid --format causes non-zero exit');
 
 # ---------------------------------------------------------------------------
-# 10. Live network tests -- gated on TEST_NETWORK=1
+# 10. Live network tests -- skipped only when NO_NETWORK_TESTING is set
 # ---------------------------------------------------------------------------
 
 SKIP: {
-	skip 'Live network tests disabled (set TEST_NETWORK=1 to enable)', 5
-		unless $ENV{TEST_NETWORK};
+	skip q{Live network tests skipped (unset NO_NETWORK_TESTING to run)}, 5
+		if $ENV{NO_NETWORK_TESTING};
 
 	my ($net_out, $net_rc) = run_cli('--no-cover', $root);
 	is($net_rc, 0, 'live: network run exits 0');
