@@ -10,7 +10,7 @@ use Params::Validate::Strict qw(validate_strict);
 
 use parent 'Test::CPAN::Health::Check';
 
-our $VERSION = '0.01';
+our $VERSION = '0.1.0';
 
 # License identifiers that are technically valid per CPAN::Meta::Spec but are
 # too vague to be meaningful -- they give downstream consumers no actionable

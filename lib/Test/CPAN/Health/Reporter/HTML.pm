@@ -9,7 +9,7 @@ use Readonly;
 use Params::Validate::Strict qw(validate_strict);
 use Scalar::Util qw(blessed);
 
-our $VERSION = '0.01';
+our $VERSION = '0.1.0';
 
 # Status badge colours: background and foreground.
 Readonly::Hash my %STATUS_BG => (

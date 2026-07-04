@@ -9,7 +9,7 @@ use Readonly;
 use Scalar::Util qw(blessed);
 use Params::Validate::Strict qw(validate_strict);
 
-our $VERSION = '0.01';
+our $VERSION = '0.1.0';
 
 =head1 NAME
 

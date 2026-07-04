@@ -11,7 +11,7 @@ use Params::Validate::Strict qw(validate_strict);
 
 use parent 'Test::CPAN::Health::Check';
 
-our $VERSION = '0.01';
+our $VERSION = '0.1.0';
 
 # Minimum consecutive code lines that form a "chunk" worth tracking.
 # Smaller values produce many false positives (e.g. matching "use strict").

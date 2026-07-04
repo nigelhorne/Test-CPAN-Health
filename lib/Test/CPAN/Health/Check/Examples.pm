@@ -12,7 +12,7 @@ use Params::Validate::Strict qw(validate_strict);
 
 use parent 'Test::CPAN::Health::Check';
 
-our $VERSION = '0.01';
+our $VERSION = '0.1.0';
 
 # Conventional directory names for distribution example scripts.
 Readonly::Array my @EXAMPLE_DIRS => qw(examples eg example);

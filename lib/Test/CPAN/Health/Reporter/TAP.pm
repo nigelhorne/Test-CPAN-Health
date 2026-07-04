@@ -8,7 +8,7 @@ use Carp qw(croak);
 use Params::Validate::Strict qw(validate_strict);
 use Scalar::Util qw(blessed);
 
-our $VERSION = '0.01';
+our $VERSION = '0.1.0';
 
 =head1 NAME
 

@@ -12,7 +12,7 @@ use Params::Validate::Strict qw(validate_strict);
 
 use parent 'Test::CPAN::Health::Check';
 
-our $VERSION = '0.01';
+our $VERSION = '0.1.0';
 
 # YAML-based CI config files that live at the distribution root.
 Readonly::Array my @ROOT_YAML_CONFIGS => qw(

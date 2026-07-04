@@ -10,7 +10,7 @@ use Readonly;
 use Params::Validate::Strict qw(validate_strict);
 use Scalar::Util qw(blessed);
 
-our $VERSION = '0.01';
+our $VERSION = '0.1.0';
 
 # Hard ceilings: a critical check failure caps the overall score to prevent a
 # dist with known CVEs or widespread test failures from scoring 90+.

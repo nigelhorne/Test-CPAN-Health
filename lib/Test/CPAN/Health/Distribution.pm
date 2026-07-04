@@ -10,7 +10,7 @@ use File::Spec;
 use Readonly;
 use Params::Validate::Strict qw(validate_strict);
 
-our $VERSION = '0.01';
+our $VERSION = '0.1.0';
 
 Readonly::Scalar my $METACPAN_API => 'https://fastapi.metacpan.org/v1';
 

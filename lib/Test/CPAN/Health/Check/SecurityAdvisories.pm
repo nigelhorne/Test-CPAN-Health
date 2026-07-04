@@ -10,7 +10,7 @@ use Params::Validate::Strict qw(validate_strict);
 
 use parent 'Test::CPAN::Health::Check';
 
-our $VERSION = '0.01';
+our $VERSION = '0.1.0';
 
 # Weight is high because a known CVE is an objective, concrete risk.
 # The Report applies a hard cap of 60 on the overall score when this fails.

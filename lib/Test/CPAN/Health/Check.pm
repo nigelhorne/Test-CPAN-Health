@@ -12,7 +12,7 @@ use Carp qw(croak carp);
 use Readonly;
 use Params::Validate::Strict qw(validate_strict);
 
-our $VERSION = '0.01';
+our $VERSION = '0.1.0';
 
 # Valid categories for grouping checks in the report.
 Readonly::Array my @VALID_CATEGORIES => qw(packaging quality security ci);

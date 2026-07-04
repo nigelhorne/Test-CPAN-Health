@@ -8,7 +8,7 @@ use Carp qw(croak);
 use Readonly;
 use Params::Validate::Strict qw(validate_strict);
 
-our $VERSION = '0.01';
+our $VERSION = '0.1.0';
 
 Readonly::Array my @VALID_STATUSES => qw(pass warn fail skip error);
 Readonly::Hash  my %STATUS_SET     => map { $_ => 1 } @VALID_STATUSES;

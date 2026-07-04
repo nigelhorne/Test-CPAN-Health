@@ -12,7 +12,7 @@ use JSON::MaybeXS qw(encode_json decode_json);
 use Readonly;
 use Params::Validate::Strict qw(validate_strict);
 
-our $VERSION = '0.01';
+our $VERSION = '0.1.0';
 
 # Default TTLs in seconds, keyed by check id prefix convention.
 # Network-heavy checks have shorter TTLs so stale data is not kept too long;

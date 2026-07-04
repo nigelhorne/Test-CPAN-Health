@@ -11,7 +11,7 @@ use Params::Validate::Strict qw(validate_strict);
 
 use parent 'Test::CPAN::Health::Check';
 
-our $VERSION = '0.01';
+our $VERSION = '0.1.0';
 
 # Each entry is a pair: [ qr/PATTERN/, 'Human-readable label' ].
 # Patterns use /m so ^ and $ match per-line within slurped file content.

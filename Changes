@@ -1,6 +1,6 @@
 Revision history for Test-CPAN-Health
 
-0.01
+0.1.0
   - Initial release on CPAN.
   - 22 health checks covering packaging, quality, security, and CI categories.
   - Four report formats: terminal (ANSI colour), JSON, HTML, and TAP.

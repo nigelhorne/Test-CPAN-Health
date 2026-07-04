@@ -10,7 +10,7 @@ use Params::Validate::Strict qw(validate_strict);
 
 use parent 'Test::CPAN::Health::Check';
 
-our $VERSION = '0.01';
+our $VERSION = '0.1.0';
 
 # Semantic versioning regex per semver.org 2.0.0 spec (strictly ASCII).
 # Accepts optional leading 'v'.  Split into smaller qr// chunks for readability.

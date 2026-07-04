@@ -10,7 +10,7 @@ use Params::Validate::Strict qw(validate_strict);
 
 use parent 'Test::CPAN::Health::Check';
 
-our $VERSION = '0.01';
+our $VERSION = '0.1.0';
 
 # Score awarded when the declared version is verified to match or exceed what
 # Perl::MinimumVersion detects in the source code.

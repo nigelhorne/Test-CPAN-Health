@@ -10,7 +10,7 @@ use Term::ANSIColor qw(colored);
 use Params::Validate::Strict qw(validate_strict);
 use Scalar::Util qw(blessed);
 
-our $VERSION = '0.01';
+our $VERSION = '0.1.0';
 
 # Glyphs -- defined as named constants to keep them out of logic code.
 # Using Unicode escape sequences keeps the source file strictly ASCII while

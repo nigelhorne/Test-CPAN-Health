@@ -12,7 +12,7 @@ use Params::Validate::Strict qw(validate_strict);
 
 use parent 'Test::CPAN::Health::Check';
 
-our $VERSION = '0.01';
+our $VERSION = '0.1.0';
 
 # Conventional directory names for distribution benchmarks.
 Readonly::Array my @BENCH_DIRS => qw(bench benchmarks benchmark);

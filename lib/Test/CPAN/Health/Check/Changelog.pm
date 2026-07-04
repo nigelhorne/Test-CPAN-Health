@@ -11,7 +11,7 @@ use Params::Validate::Strict qw(validate_strict);
 
 use parent 'Test::CPAN::Health::Check';
 
-our $VERSION = '0.01';
+our $VERSION = '0.1.0';
 
 Readonly::Scalar my $SCORE_PASS        => 100;
 Readonly::Scalar my $SCORE_NO_VERSION  =>  50;
@@ -189,11 +189,15 @@ sub run {
 	}
 
 	# Match common release-entry formats (split into qr// per PBP):
-	#   0.01  2026-07-03              (CPAN standard)
-	#   v0.01  2026-07-03            (with v prefix)
-	#   ## [0.01] - 2026-07-03       (Keep a Changelog)
-	#   version 0.01  /  release 0.01
-	my $v           = quotemeta($dist_version);
+	#   0.1.0  2026-07-03              (CPAN standard)
+	#   v0.1.0  2026-07-03            (with v prefix)
+	#   ## [0.1.0] - 2026-07-03       (Keep a Changelog)
+	#   version 0.1.0  /  release 0.1.0
+	# Strip any leading 'v' before quotemeta so that the v? in each regex
+	# handles both "v0.1.0" and "0.1.0" in the file regardless of whether
+	# CPAN::Meta normalized the version string to include a v prefix.
+	(my $bare_version = $dist_version) =~ s/ ^ v //ix;
+	my $v           = quotemeta($bare_version);
 	my $re_standard = qr/ (?: ^ | \n ) [^\n]* v? $v \s              /xi;
 	my $re_keepal   = qr/ \[ \s* v? $v \s* \]                       /xi;
 	my $re_prose    = qr/ (?: version | release ) \s+ v? $v \b      /xi;
