@@ -2,6 +2,7 @@
 
 requires 'perl', '5.014';
 
+requires 'Archive::Tar';
 requires 'CPAN::Audit';
 requires 'CPAN::Meta';
 requires 'Carp';

@@ -1,4 +1,8 @@
 Revision history for Test-CPAN-Health
 
+0.2.0
+	[ Bug Fixes ]
+	- lib/Test/CPAN/Health/Distribution.pm needs Archive::Tar
+
 0.1.0	Sat Jul  4 16:16:37 EDT 2026
   - Initial release on CPAN.

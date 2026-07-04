@@ -182,10 +182,10 @@ sub from_cpan {
 
 	my $tmp_dir = File::Temp::tempdir(CLEANUP => 0);    # we manage cleanup
 
-	my $tar = Archive::Tar->new;
+	my $tar = Archive::Tar->new();
 	$tar->read(\$tarball_res->{content}, 1);            # 1 = compressed
 	$tar->extract_archive($tmp_dir)
-		or croak "Unpack failed: " . Archive::Tar->error;
+		or croak 'Unpack failed: ' . Archive::Tar->error();
 
 	# The tarball unpacks to a single top-level directory (Dist-Name-X.Y).
 	my ($unpack_dir) = glob "$tmp_dir/*";
