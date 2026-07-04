@@ -23,6 +23,7 @@ WriteMakefile(
 		'HTTP::Tiny'            => 0,
 		'JSON::MaybeXS'         => 0,
 		'Module::CPANTS::Analyse' => 0,
+		'Object::Configure' => 0,
 		'Params::Get'           => 0,
 		'Params::Validate::Strict' => 0.35,
 		'Perl::Critic'          => 0,

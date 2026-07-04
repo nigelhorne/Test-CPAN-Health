@@ -5,10 +5,11 @@ use warnings;
 use autodie qw(:all);
 
 use Carp qw(croak carp);
+use Object::Configure;
 use Readonly;
-use Scalar::Util qw(blessed);
 use Params::Get;
 use Params::Validate::Strict qw(validate_strict);
+use Scalar::Util qw(blessed);
 
 our $VERSION = '0.01';
 
@@ -179,7 +180,7 @@ C<PPI> and may produce false positives on generated or data-heavy code.
 =cut
 
 sub new {
-	my ($class, @arg_list) = @_;
+	my $class = shift;
 	my $args = validate_strict(
 		schema => {
 			distribution => { type => 'object', isa => 'Test::CPAN::Health::Distribution', optional => 1 },
@@ -195,7 +196,7 @@ sub new {
 			min_score    => { type => 'integer',  min => 0, max => 100, optional => 1 },
 			cache_dir    => { type => 'string',   optional => 1 },
 		},
-		input => Params::Get::get_params(undef, \@arg_list) || {}
+		input => Params::Get::get_params(undef, \@_) || {}
 	);
 
 	croak 'One of path, module, dist, or distribution is required'
@@ -204,6 +205,8 @@ sub new {
 	my $format = lc($args->{format} // $DEFAULTS{format});
 	croak "Unknown format '$format'; expected one of: " . join(', ', sort keys %VALID_FORMATS)
 		unless $VALID_FORMATS{$format};
+
+	$args = Object::Configure::configure($class, $args);
 
 	return bless {
 		_distribution => $args->{distribution},
@@ -437,7 +440,7 @@ sub _init_reporter {
 	eval { (my $file = "$reporter_class.pm") =~ s{ :: }{/}gx; require $file; 1 }
 		or croak "Cannot load reporter $reporter_class: $@";
 
-	$self->{_reporter} = $reporter_class->new;
+	$self->{_reporter} = $reporter_class->new();
 
 	return $self;
 }

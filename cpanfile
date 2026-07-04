@@ -14,6 +14,7 @@ requires 'Getopt::Long';
 requires 'HTTP::Tiny';
 requires 'JSON::MaybeXS';
 requires 'Module::CPANTS::Analyse';
+requires 'Object::Configure';
 requires 'Params::Get';
 requires 'Params::Validate::Strict', '0.35';
 requires 'Perl::Critic';
@@ -23,7 +24,6 @@ requires 'Pod::Checker';
 requires 'Pod::Coverage';
 requires 'Readonly', '2.00';
 requires 'Scalar::Util';
-requires 'Sub::Protected';
 requires 'Term::ANSIColor';
 requires 'YAML::Tiny';
 
